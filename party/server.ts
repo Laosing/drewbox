@@ -91,6 +91,12 @@ export default class Server implements Party.Server {
   }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    // 0. Validate Room ID (Security)
+    if (!/^[a-z]{4}$/.test(this.room.id)) {
+      conn.close(4000, "Invalid Room ID. Must be 4 lowercase letters.")
+      return
+    }
+
     // 1. Get IP
     const ip = (
       ctx.request.headers.get("x-forwarded-for") ||

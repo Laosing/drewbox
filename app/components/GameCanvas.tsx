@@ -105,7 +105,7 @@ function GameCanvasInner({
   }, [chatMessages])
 
   const handleMessage = (
-    data: ServerMessage & { senderName?: string; text?: string }
+    data: ServerMessage & { senderName?: string; text?: string },
   ) => {
     if (data.type === "STATE_UPDATE") {
       if (data.gameState) setGameState(data.gameState)
@@ -131,7 +131,9 @@ function GameCanvasInner({
       addLog(`Game Over! Winner: ${winnerName}`)
     } else if (data.type === "CHAT_MESSAGE" && data.senderName && data.text) {
       setChatMessages((prev) =>
-        [...prev, { senderName: data.senderName!, text: data.text! }].slice(-50)
+        [...prev, { senderName: data.senderName!, text: data.text! }].slice(
+          -50,
+        ),
       )
     } else if (data.type === "TYPING_UPDATE" && data.text !== undefined) {
       if (data.playerId !== socket.id) {
@@ -161,7 +163,7 @@ function GameCanvasInner({
 
   const handleSettingsSave = () => {
     socket.send(
-      JSON.stringify({ type: "UPDATE_SETTINGS", startingLives: startingLives })
+      JSON.stringify({ type: "UPDATE_SETTINGS", startingLives: startingLives }),
     )
     setIsSettingsOpen(false)
   }
@@ -272,13 +274,20 @@ function GameCanvasInner({
         </div>
 
         <div className="text-sm opacity-70 mb-4">
-          Room: <strong className="font-mono">{room}</strong>
+          Room:{" "}
+          <strong className="font-mono text-lg badge badge-neutral tracking-widest">
+            {room.toUpperCase()}
+          </strong>
           {password && " 🔒"}
         </div>
 
         {gameState === "LOBBY" && (
           <div className="flex flex-col gap-4 items-center">
-            <p className="text-lg">Welcome! Waiting for players...</p>
+            <p className="text-lg">
+              Welcome! BlitzParty is a fast-paced multiplayer "hot potato"
+              typing game. Players take turns forming words containing a
+              specific substring of letters before a bomb explodes.
+            </p>
             <div className="badge badge-lg badge-neutral gap-2">
               Lives: {startingLives} ❤
             </div>
@@ -340,7 +349,7 @@ function GameCanvasInner({
                     const val = e.target.value
                     setInput(val)
                     socket.send(
-                      JSON.stringify({ type: "UPDATE_TYPING", text: val })
+                      JSON.stringify({ type: "UPDATE_TYPING", text: val }),
                     )
                   }
                 }}
@@ -412,7 +421,7 @@ function GameCanvasInner({
                 <div className="w-16 h-16 rounded-xl shadow-md border border-base-content/10">
                   <img
                     src={`data:image/svg+xml;base64,${btoa(
-                      generateAvatar(p.name)
+                      generateAvatar(p.name),
                     )}`}
                     alt="Avatar"
                   />
@@ -491,7 +500,7 @@ export default function GameCanvas({ room }: { room: string }) {
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [needsPassword, setNeedsPassword] = useState(false)
   const [connectionPassword, setConnectionPassword] = useState<string | null>(
-    null
+    null,
   )
   const [passwordInput, setPasswordInput] = useState("")
 

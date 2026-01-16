@@ -73,12 +73,21 @@ export default function LobbyView() {
           onSubmit={handleCreate}
           className="my-8 flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
-          <input
-            value={newRoomName}
-            onChange={(e) => setNewRoomName(e.target.value)}
-            placeholder="Create Room Name..."
-            className="input input-bordered w-full max-w-xs text-center"
-          />
+          <div className="flex flex-col gap-1 w-full max-w-xs">
+            <input
+              value={newRoomName}
+              onChange={(e) => {
+                const val = e.target.value.toLowerCase().replace(/[^a-z]/g, "")
+                setNewRoomName(val.substring(0, 4))
+              }}
+              placeholder="Room (4 letters)"
+              className="input input-bordered w-full text-center font-mono uppercase placeholder:normal-case"
+              maxLength={4}
+            />
+            {newRoomName.length > 0 && newRoomName.length < 4 && (
+              <span className="text-xs text-error">Must be 4 letters</span>
+            )}
+          </div>
           <input
             value={roomPassword}
             onChange={(e) => setRoomPassword(e.target.value)}
@@ -86,7 +95,11 @@ export default function LobbyView() {
             type="password"
             className="input input-bordered w-full max-w-xs text-center"
           />
-          <button type="submit" className="btn btn-primary">
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={newRoomName.length !== 4}
+          >
             Create
           </button>
         </form>
