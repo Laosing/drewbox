@@ -51,6 +51,10 @@ export default class Server implements Party.Server {
   lastActivity: number = Date.now()
   keepAliveInterval: ReturnType<typeof setInterval> | null = null
 
+  // Bot Protection
+  turnStartTime: number = 0
+  lastConnectionAttempts: Map<string, number> = new Map()
+
   constructor(room: Party.Room) {
     this.room = room
     this.dictionary = new DictionaryManager()
@@ -59,6 +63,12 @@ export default class Server implements Party.Server {
     setInterval(() => {
       this.messageCounts.clear()
       this.lastRateCheck = Date.now()
+
+      // Also clean up old connection attempts (10s window)
+      const now = Date.now()
+      for (const [ip, time] of this.lastConnectionAttempts) {
+        if (now - time > 10000) this.lastConnectionAttempts.delete(ip)
+      }
     }, 1000)
 
     // Heartbeat & Inactivity Check
@@ -89,6 +99,16 @@ export default class Server implements Party.Server {
     )
       .split(",")[0]
       .trim()
+
+    // 2. Anti-Bot: Connection Throttling
+    // Allow 1 connection every 2 seconds per IP
+    const lastAttempt = this.lastConnectionAttempts.get(ip)
+    if (lastAttempt && Date.now() - lastAttempt < 2000) {
+      console.log(`Rejected fast reconnect from IP: ${ip}`)
+      conn.close(4003, "Connection rate limited. Please wait.")
+      return
+    }
+    this.lastConnectionAttempts.set(ip, Date.now())
 
     // 2. Check if blocked
     if (this.blockedIPs.has(ip)) {
@@ -234,7 +254,7 @@ export default class Server implements Party.Server {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
           },
-        }
+        },
       )
     }
     return new Response("Not found", { status: 404 })
@@ -466,7 +486,7 @@ export default class Server implements Party.Server {
   nextTurn(
     success: boolean,
     isFirst: boolean = false,
-    overridePlayerId?: string
+    overridePlayerId?: string,
   ) {
     if (this.gameState !== "PLAYING") return
 
@@ -498,11 +518,28 @@ export default class Server implements Party.Server {
     // For now, it returns "ING" if not loaded.
     this.currentSyllable = this.dictionary.getRandomSyllable(50)
     this.timer = this.maxTimer
+    this.turnStartTime = Date.now()
 
     this.broadcastState()
   }
 
-  handleWordSubmission(playerId: string, word: string) {
+  handleWordSubmission(playerId: string, rawWord: string) {
+    // Anti-Bot: Reaction Time Check
+    // If the submission is impossibly fast (< 300ms) after turn start, ignore or reject.
+    const reactionTime = Date.now() - this.turnStartTime
+    if (reactionTime < 300) {
+      console.log(
+        `Rejected implausible reaction time: ${reactionTime}ms by ${playerId}`,
+      )
+      // Silent ignore or error
+      this.sendTo(playerId, {
+        type: "ERROR",
+        message: "Too fast! Are you a bot?",
+      })
+      return
+    }
+
+    const word = rawWord.trim()
     if (this.usedWords.has(word.toLowerCase())) {
       this.sendTo(playerId, { type: "ERROR", message: "Word already used!" })
       return
@@ -575,7 +612,7 @@ export default class Server implements Party.Server {
         timer: this.timer,
         dictionaryLoaded: this.dictionaryReady,
         startingLives: this.startingLives,
-      })
+      }),
     )
   }
 
