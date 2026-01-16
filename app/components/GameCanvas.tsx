@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import usePartySocket from "partysocket/react"
+import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
 import { generateAvatar } from "../utils/avatar"
 import styles from "./GameCanvas.module.css"
 
@@ -42,24 +43,32 @@ function GameCanvasInner({
   const [logs, setLogs] = useState<string[]>([])
   const [input, setInput] = useState("")
   const [activePlayerInput, setActivePlayerInput] = useState("")
-  const [myName, setMyName] = useState("")
-  const [dictionaryLoaded, setDictionaryLoaded] = useState(false)
 
-  const [chatMessages, setChatMessages] = useState<
-    { senderName: string; text: string }[]
-  >([])
-  const [chatInput, setChatInput] = useState("")
+  // Persistent name state (committed)
+  const [myName, setMyName] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("blitzparty_username") || ""
+    }
+    return ""
+  })
 
-  const inputRef = useRef<HTMLInputElement>(null)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  // Input field state
+  const [nameInput, setNameInput] = useState(myName)
 
+  // Sync input with localstorage name on mount/update
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [chatMessages])
+    setNameInput(myName)
+  }, [myName])
+
+  const [dictionaryLoaded, setDictionaryLoaded] = useState(false)
 
   const socket = usePartySocket({
     room: room,
-    query: password ? { password } : undefined,
+    // Add name to query
+    query: {
+      ...(password ? { password } : {}),
+      ...(myName ? { name: myName } : {}),
+    },
     onMessage(evt) {
       const data = JSON.parse(evt.data) as ServerMessage & {
         senderName?: string
@@ -76,6 +85,18 @@ function GameCanvasInner({
       }
     },
   })
+
+  const [chatMessages, setChatMessages] = useState<
+    { senderName: string; text: string }[]
+  >([])
+  const [chatInput, setChatInput] = useState("")
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [chatMessages])
 
   const handleMessage = (
     data: ServerMessage & { senderName?: string; text?: string }
@@ -96,10 +117,11 @@ function GameCanvasInner({
     } else if (data.type === "EXPLOSION") {
       addLog(`BOOM! Player exploded!`)
     } else if (data.type === "GAME_OVER") {
-      addLog(`Game Over! Winner: ${data.winnerId || "None"}`)
-      setChatMessages((prev) =>
-        [...prev, { senderName: data.senderName!, text: data.text! }].slice(-50)
-      )
+      const winnerName =
+        players.find((p) => p.id === data.winnerId)?.name ||
+        data.winnerId ||
+        "None"
+      addLog(`Game Over! Winner: ${winnerName}`)
     } else if (data.type === "CHAT_MESSAGE" && data.senderName && data.text) {
       setChatMessages((prev) =>
         [...prev, { senderName: data.senderName!, text: data.text! }].slice(-50)
@@ -117,6 +139,10 @@ function GameCanvasInner({
 
   const handleStart = () => {
     socket.send(JSON.stringify({ type: "START_GAME" }))
+  }
+
+  const handleStop = () => {
+    socket.send(JSON.stringify({ type: "STOP_GAME" }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,7 +166,9 @@ function GameCanvasInner({
   }
 
   const handleNameChange = () => {
-    socket.send(JSON.stringify({ type: "SET_NAME", name: myName }))
+    setMyName(nameInput) // Commit the new name
+    localStorage.setItem("blitzparty_username", nameInput)
+    socket.send(JSON.stringify({ type: "SET_NAME", name: nameInput }))
 
     setIsNameDisabled(true)
     setTimeout(() => setIsNameDisabled(false), 5000)
@@ -181,8 +209,8 @@ function GameCanvasInner({
             <p>Welcome! Waiting for players...</p>
             <div className={styles.nameForm}>
               <input
-                value={myName}
-                onChange={(e) => setMyName(e.target.value)}
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Enter your name"
                 className={styles.nameInput}
               />
@@ -235,6 +263,17 @@ function GameCanvasInner({
                 autoFocus={isMyTurn}
               />
             </form>
+            <button
+              onClick={handleStop}
+              style={{
+                marginTop: "1rem",
+                background: "rgba(0,0,0,0.3)",
+                fontSize: "0.8rem",
+                padding: "0.5rem 1rem",
+              }}
+            >
+              Stop Game
+            </button>
           </div>
         )}
 
@@ -314,6 +353,7 @@ function GameCanvasInner({
 }
 
 export default function GameCanvas({ room }: { room: string }) {
+  const isBlocked = useMultiTabPrevention()
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [needsPassword, setNeedsPassword] = useState(false)
   const [connectionPassword, setConnectionPassword] = useState<string | null>(
@@ -358,6 +398,25 @@ export default function GameCanvas({ room }: { room: string }) {
     e.preventDefault()
     setConnectionPassword(passwordInput)
     setNeedsPassword(false) // Trigger connection
+  }
+
+  if (isBlocked) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.card}>
+          <h2>Multiple Tabs Detected</h2>
+          <p>You are already active in another game tab.</p>
+          <p>Please close this tab or the other one to continue.</p>
+          <button
+            onClick={() => (window.location.href = "/")}
+            className={styles.primaryButton}
+            style={{ marginTop: "1rem" }}
+          >
+            Back to Lobby
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (checkingStatus) {

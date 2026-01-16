@@ -81,6 +81,7 @@ export default class Server implements Party.Server {
     const url = new URL(ctx.request.url)
     const origin = url.origin
     const passwordParam = url.searchParams.get("password") || undefined
+    const nameParam = url.searchParams.get("name")
 
     // First player sets the password (if any)
     if (this.players.size === 0) {
@@ -101,12 +102,16 @@ export default class Server implements Party.Server {
       }
     })
 
-    const name = `Guest ${conn.id.substring(0, 4)}`
+    // Use the name from query or default to Guest
+    const name = nameParam
+      ? nameParam.substring(0, 12)
+      : `Guest ${conn.id.substring(0, 4)}`
+
     this.players.set(conn.id, {
       id: conn.id,
       name,
       lives: 2,
-      isAlive: true,
+      isAlive: this.gameState !== "PLAYING",
       wins: 0,
       usedLetters: [],
     })
@@ -117,20 +122,39 @@ export default class Server implements Party.Server {
 
   onClose(conn: Party.Connection) {
     console.log(`Disconnected: ${conn.id}`)
+
+    // Determine next player if active player is leaving
+    let forceNextId: string | undefined
+    if (this.gameState === "PLAYING" && conn.id === this.activePlayerId) {
+      const playerIds = Array.from(this.players.values())
+        .filter((p) => p.isAlive)
+        .map((p) => p.id)
+      const idx = playerIds.indexOf(conn.id)
+      if (idx !== -1) {
+        // Pick next in ring
+        const nextIdx = (idx + 1) % playerIds.length
+        if (playerIds[nextIdx] !== conn.id) {
+          forceNextId = playerIds[nextIdx]
+        }
+      }
+    }
+
     this.players.delete(conn.id)
     this.messageCounts.delete(conn.id)
     this.rateLimits.delete(conn.id)
 
-    if (this.players.size === 0) {
+    this.checkWinCondition() // Check if game should end due to lack of players
+
+    if (this.gameState === "PLAYING") {
+      if (conn.id === this.activePlayerId) {
+        // If the active player left, immediately pass turn to next
+        this.nextTurn(false, false, forceNextId)
+      }
+    } else if (this.players.size === 0) {
+      // Cleanup if empty
       if (this.tickInterval) clearInterval(this.tickInterval)
-      // We don't verify keepAliveInterval logic here because hibernate=true
-      // will implicitly kill everything when process exits.
       this.gameState = "LOBBY"
       this.usedWords.clear()
-    } else {
-      if (conn.id === this.activePlayerId) {
-        this.nextTurn(false)
-      }
     }
 
     this.broadcastState()
@@ -187,8 +211,15 @@ export default class Server implements Party.Server {
 
       switch (data.type) {
         case "START_GAME":
-          if (this.gameState === "LOBBY") {
+          if (this.gameState === "LOBBY" && this.players.size > 0) {
             this.startGame()
+          }
+          break
+
+        case "STOP_GAME":
+          if (this.gameState === "PLAYING") {
+            this.endGame(null) // End game with no winner (or specific message?)
+            // endGame(null) sets state to ENDED then LOBBY.
           }
           break
 
@@ -329,7 +360,11 @@ export default class Server implements Party.Server {
     }
   }
 
-  nextTurn(success: boolean, isFirst: boolean = false) {
+  nextTurn(
+    success: boolean,
+    isFirst: boolean = false,
+    overridePlayerId?: string
+  ) {
     if (this.gameState !== "PLAYING") return
 
     const playerIds = Array.from(this.players.values())
@@ -341,14 +376,19 @@ export default class Server implements Party.Server {
     }
 
     let nextIndex = 0
-    if (!isFirst && this.activePlayerId) {
+
+    if (overridePlayerId && playerIds.includes(overridePlayerId)) {
+      this.activePlayerId = overridePlayerId
+    } else if (!isFirst && this.activePlayerId) {
       const currentIndex = playerIds.indexOf(this.activePlayerId)
       nextIndex = (currentIndex + 1) % playerIds.length
+      this.activePlayerId = playerIds[nextIndex]
     } else if (isFirst) {
       nextIndex = Math.floor(Math.random() * playerIds.length)
+      this.activePlayerId = playerIds[nextIndex]
+    } else {
+      this.activePlayerId = playerIds[0]
     }
-
-    this.activePlayerId = playerIds[nextIndex]
 
     // Async generation?
     // getRandomSyllable is synchronous in interface but we might want to ensure loading?
