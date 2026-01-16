@@ -202,6 +202,20 @@ export default class Server implements Party.Server {
           }
           break
 
+        case "UPDATE_TYPING":
+          if (
+            this.gameState === "PLAYING" &&
+            this.activePlayerId === sender.id &&
+            typeof data.text === "string"
+          ) {
+            this.broadcast({
+              type: "TYPING_UPDATE",
+              text: data.text,
+              playerId: sender.id,
+            })
+          }
+          break
+
         case "SET_NAME":
           {
             const limits = this.rateLimits.get(sender.id) || {

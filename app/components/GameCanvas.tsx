@@ -41,6 +41,7 @@ function GameCanvasInner({
   const [timer, setTimer] = useState(10)
   const [logs, setLogs] = useState<string[]>([])
   const [input, setInput] = useState("")
+  const [activePlayerInput, setActivePlayerInput] = useState("")
   const [myName, setMyName] = useState("")
   const [dictionaryLoaded, setDictionaryLoaded] = useState(false)
 
@@ -96,10 +97,17 @@ function GameCanvasInner({
       addLog(`BOOM! Player exploded!`)
     } else if (data.type === "GAME_OVER") {
       addLog(`Game Over! Winner: ${data.winnerId || "None"}`)
+      setChatMessages((prev) =>
+        [...prev, { senderName: data.senderName!, text: data.text! }].slice(-50)
+      )
     } else if (data.type === "CHAT_MESSAGE" && data.senderName && data.text) {
       setChatMessages((prev) =>
         [...prev, { senderName: data.senderName!, text: data.text! }].slice(-50)
       )
+    } else if (data.type === "TYPING_UPDATE" && data.text !== undefined) {
+      if (data.playerId !== socket.id) {
+        setActivePlayerInput(data.text)
+      }
     }
   }
 
@@ -141,6 +149,9 @@ function GameCanvasInner({
   useEffect(() => {
     if (socket.id === activePlayerId && gameState === "PLAYING") {
       inputRef.current?.focus()
+      setInput("") // Clear input when turn starts
+    } else {
+      setActivePlayerInput("") // Clear remote input when turn changes
     }
   }, [activePlayerId, gameState, socket.id])
 
@@ -162,6 +173,7 @@ function GameCanvasInner({
 
         <div className={styles.roomInfo}>
           Room: <strong>{room}</strong>
+          {password && "🔒"}
         </div>
 
         {gameState === "LOBBY" && (
@@ -202,14 +214,22 @@ function GameCanvasInner({
             <form onSubmit={handleSubmit}>
               <input
                 ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                value={isMyTurn ? input : activePlayerInput}
+                onChange={(e) => {
+                  if (isMyTurn) {
+                    const val = e.target.value
+                    setInput(val)
+                    socket.send(
+                      JSON.stringify({ type: "UPDATE_TYPING", text: val })
+                    )
+                  }
+                }}
                 placeholder={
                   isMyTurn
                     ? "Type a word!"
-                    : `Waiting for ${
+                    : `${
                         players.find((p) => p.id === activePlayerId)?.name
-                      }...`
+                      } is typing...`
                 }
                 disabled={!isMyTurn}
                 autoFocus={isMyTurn}
@@ -236,7 +256,9 @@ function GameCanvasInner({
           >
             <div className={styles.playerInfo}>
               <img
-                src={`data:image/svg+xml;base64,${btoa(generateAvatar(p.id))}`}
+                src={`data:image/svg+xml;base64,${btoa(
+                  generateAvatar(p.name)
+                )}`}
                 alt="Avatar"
                 className={styles.avatar}
               />
