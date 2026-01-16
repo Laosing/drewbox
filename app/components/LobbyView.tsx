@@ -16,6 +16,8 @@ export default function LobbyView() {
     if (err === "password") setErrorMsg("Invalid password provided.")
     if (err === "inactivity")
       setErrorMsg("You were disconnected due to inactivity.")
+    if (err === "kicked")
+      setErrorMsg("You were kicked from the room by the admin.")
 
     // Clean URL
     if (err) {
@@ -47,32 +49,20 @@ export default function LobbyView() {
   }
 
   return (
-    <div className="game-container">
-      <div className="card">
-        <h1 style={{ color: "var(--accent-color)" }}>💣 BlitzParty Lobby</h1>
-        <p>Choose a room to join or create a new one.</p>
+    <div className="container mx-auto p-4 flex flex-col gap-8 max-w-4xl relative">
+      <div className="card bg-base-100 shadow-xl p-8 text-center border border-base-300">
+        <h1 className="text-4xl font-bold text-primary flex items-center justify-center gap-4 mb-4">
+          <img src="/favicon.svg" alt="Logo" width="48" height="48" />
+          BlitzParty Lobby
+        </h1>
+        <p className="opacity-70">Choose a room to join or create a new one.</p>
 
         {errorMsg && (
-          <div
-            style={{
-              background: "#ff4444",
-              color: "white",
-              padding: "10px",
-              borderRadius: "4px",
-              margin: "1rem 0",
-              fontWeight: "bold",
-            }}
-          >
-            {errorMsg}
+          <div className="alert alert-error mt-4">
+            <span className="font-bold">{errorMsg}</span>
             <button
               onClick={() => setErrorMsg(null)}
-              style={{
-                float: "right",
-                background: "none",
-                border: "none",
-                color: "white",
-                cursor: "pointer",
-              }}
+              className="btn btn-sm btn-ghost absolute right-2 top-2"
             >
               ✕
             </button>
@@ -81,41 +71,38 @@ export default function LobbyView() {
 
         <form
           onSubmit={handleCreate}
-          style={{
-            margin: "2rem 0",
-            display: "flex",
-            gap: "10px",
-            justifyContent: "center",
-          }}
+          className="my-8 flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
           <input
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
             placeholder="Create Room Name..."
-            style={{ maxWidth: "200px" }}
+            className="input input-bordered w-full max-w-xs text-center"
           />
           <input
             value={roomPassword}
             onChange={(e) => setRoomPassword(e.target.value)}
             placeholder="Password (Optional)"
             type="password"
-            style={{ maxWidth: "150px" }}
+            className="input input-bordered w-full max-w-xs text-center"
           />
-          <button type="submit">Create</button>
+          <button type="submit" className="btn btn-primary">
+            Create
+          </button>
         </form>
 
-        <div style={{ textAlign: "left", width: "100%" }}>
-          <h3 style={{ marginBottom: "1rem" }}>
+        <div className="text-left w-full">
+          <h3 className="text-xl font-bold mb-4">
             Active Rooms ({availableRooms.length})
           </h3>
 
           {availableRooms.length === 0 && (
-            <p style={{ opacity: 0.5, textAlign: "center" }}>
-              No active games found.
+            <p className="text-center opacity-50 py-8">
+              No active games found. Be the first to start one!
             </p>
           )}
 
-          <div style={{ display: "grid", gap: "10px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {availableRooms.map((r) => (
               <div
                 key={r.id}
@@ -127,38 +114,14 @@ export default function LobbyView() {
                     joinRoom(r.id)
                   }
                 }}
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  padding: "15px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
-                }
+                className="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer p-4 flex flex-row justify-between items-center"
               >
-                <span style={{ fontWeight: "bold" }}>{r.id}</span>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
+                <span className="font-bold truncate">{r.id}</span>
+                <div className="flex items-center gap-2">
                   {r.isPrivate && <span>🔒</span>}
-                  <span
-                    style={{
-                      background: "#444",
-                      padding: "2px 8px",
-                      borderRadius: "10px",
-                      fontSize: "0.8rem",
-                    }}
-                  >
+                  <div className="badge badge-neutral">
                     {r.players} Player{r.players !== 1 ? "s" : ""}
-                  </span>
+                  </div>
                 </div>
               </div>
             ))}

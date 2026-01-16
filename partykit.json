@@ -7,8 +7,8 @@
   },
   "compatibilityDate": "2026-01-15",
   "serve": {
-    "path": "public",
-    "build": "app/client.tsx"
+    "path": "dist",
+    "singlePageApp": true
   },
   "port": 1999
 }

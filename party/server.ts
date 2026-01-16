@@ -8,11 +8,13 @@ type Player = {
   isAlive: boolean
   wins: number
   usedLetters: string[]
+  isAdmin: boolean
 }
 
 type GameState = "LOBBY" | "PLAYING" | "ENDED"
 
 export default class Server implements Party.Server {
+  // ... (options, room, dictionary, players, gameState, etc definitions constant)
   options: Party.ServerOptions = {
     hibernate: true,
   }
@@ -23,6 +25,7 @@ export default class Server implements Party.Server {
   players: Map<string, Player> = new Map()
   gameState: GameState = "LOBBY"
 
+  // ... (rest of properties)
   currentSyllable: string = ""
   usedWords: Set<string> = new Set()
   activePlayerId: string | null = null
@@ -107,6 +110,9 @@ export default class Server implements Party.Server {
       ? nameParam.substring(0, 12)
       : `Guest ${conn.id.substring(0, 4)}`
 
+    // First player is admin
+    const isAdmin = this.players.size === 0
+
     this.players.set(conn.id, {
       id: conn.id,
       name,
@@ -114,6 +120,7 @@ export default class Server implements Party.Server {
       isAlive: this.gameState !== "PLAYING",
       wins: 0,
       usedLetters: [],
+      isAdmin,
     })
 
     this.broadcastState()
@@ -122,6 +129,8 @@ export default class Server implements Party.Server {
 
   onClose(conn: Party.Connection) {
     console.log(`Disconnected: ${conn.id}`)
+
+    const wasAdmin = this.players.get(conn.id)?.isAdmin
 
     // Determine next player if active player is leaving
     let forceNextId: string | undefined
@@ -143,6 +152,15 @@ export default class Server implements Party.Server {
     this.messageCounts.delete(conn.id)
     this.rateLimits.delete(conn.id)
 
+    // Reassign admin if necessary
+    if (wasAdmin && this.players.size > 0) {
+      // Assign to the first available player (who has been there longest usually)
+      const newAdmin = this.players.values().next().value
+      if (newAdmin) {
+        newAdmin.isAdmin = true
+      }
+    }
+
     this.checkWinCondition() // Check if game should end due to lack of players
 
     if (this.gameState === "PLAYING") {
@@ -160,6 +178,8 @@ export default class Server implements Party.Server {
     this.broadcastState()
     this.reportToLobby()
   }
+
+  // ... (onRequest, reportToLobby remain same)
 
   async onRequest(req: Party.Request) {
     if (req.method === "GET") {
@@ -208,18 +228,27 @@ export default class Server implements Party.Server {
 
     try {
       const data = JSON.parse(message)
+      const senderPlayer = this.players.get(sender.id)
 
       switch (data.type) {
         case "START_GAME":
-          if (this.gameState === "LOBBY" && this.players.size > 0) {
+          if (
+            senderPlayer?.isAdmin &&
+            this.gameState === "LOBBY" &&
+            this.players.size > 0
+          ) {
             this.startGame()
           }
           break
 
         case "STOP_GAME":
-          if (this.gameState === "PLAYING") {
-            this.endGame(null) // End game with no winner (or specific message?)
-            // endGame(null) sets state to ENDED then LOBBY.
+          if (senderPlayer?.isAdmin && this.gameState === "PLAYING") {
+            // If strictly one player, treat them as winner to avoid "None"
+            if (this.players.size === 1) {
+              this.endGame(this.players.keys().next().value)
+            } else {
+              this.endGame(null)
+            }
           }
           break
 
@@ -299,11 +328,37 @@ export default class Server implements Party.Server {
             }
           }
           break
+
+        case "UPDATE_SETTINGS":
+          if (senderPlayer?.isAdmin && typeof data.startingLives === "number") {
+            // Basic validation
+            let lives = Math.floor(data.startingLives)
+            if (lives < 1) lives = 1
+            if (lives > 10) lives = 10
+            this.startingLives = lives
+            this.broadcastState()
+          }
+          break
+
+        case "KICK_PLAYER":
+          if (senderPlayer?.isAdmin && typeof data.playerId === "string") {
+            // Cannot kick self
+            if (data.playerId === sender.id) return
+
+            const targetConn = this.room.getConnection(data.playerId)
+            if (targetConn) {
+              targetConn.close(4002, "Kicked by Admin")
+            }
+          }
+          break
       }
     } catch (e) {
       console.error("Error parsing message", e)
     }
   }
+
+  initialAliveCount: number = 0
+  startingLives: number = 2
 
   startGame() {
     if (this.players.size < 1) return
@@ -311,9 +366,10 @@ export default class Server implements Party.Server {
 
     this.gameState = "PLAYING"
     this.usedWords.clear()
+    this.initialAliveCount = this.players.size
 
     for (const p of this.players.values()) {
-      p.lives = 2
+      p.lives = this.startingLives
       p.isAlive = true
       p.usedLetters = []
     }
@@ -434,10 +490,14 @@ export default class Server implements Party.Server {
 
   checkWinCondition() {
     const alive = Array.from(this.players.values()).filter((p) => p.isAlive)
-    if (alive.length <= 1 && this.players.size > 1) {
+    if (alive.length <= 1 && this.initialAliveCount > 1) {
       this.endGame(alive[0]?.id)
     } else if (alive.length === 0) {
-      this.endGame(null)
+      if (this.players.size === 1) {
+        this.endGame(this.players.keys().next().value)
+      } else {
+        this.endGame(null)
+      }
     }
   }
 
@@ -467,6 +527,7 @@ export default class Server implements Party.Server {
         activePlayerId: this.activePlayerId,
         timer: this.timer,
         dictionaryLoaded: this.dictionaryReady,
+        startingLives: this.startingLives,
       })
     )
   }

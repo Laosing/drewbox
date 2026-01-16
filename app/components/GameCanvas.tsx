@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react"
 import usePartySocket from "partysocket/react"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
 import { generateAvatar } from "../utils/avatar"
-import styles from "./GameCanvas.module.css"
 
 type Player = {
   id: string
@@ -11,6 +10,7 @@ type Player = {
   isAlive: boolean
   wins: number
   usedLetters: string[]
+  isAdmin?: boolean
 }
 
 type GameState = "LOBBY" | "PLAYING" | "ENDED"
@@ -26,6 +26,7 @@ type ServerMessage = {
   winnerId?: string
   playerId?: string
   dictionaryLoaded?: boolean
+  startingLives?: number
 }
 
 function GameCanvasInner({
@@ -40,6 +41,7 @@ function GameCanvasInner({
   const [currentSyllable, setCurrentSyllable] = useState("")
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null)
   const [timer, setTimer] = useState(10)
+  const [startingLives, setStartingLives] = useState(2)
   const [logs, setLogs] = useState<string[]>([])
   const [input, setInput] = useState("")
   const [activePlayerInput, setActivePlayerInput] = useState("")
@@ -83,6 +85,9 @@ function GameCanvasInner({
       if (evt.code === 4001) {
         window.location.href = "/?error=inactivity"
       }
+      if (evt.code === 4002) {
+        window.location.href = "/?error=kicked"
+      }
     },
   })
 
@@ -90,6 +95,7 @@ function GameCanvasInner({
     { senderName: string; text: string }[]
   >([])
   const [chatInput, setChatInput] = useState("")
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -110,6 +116,7 @@ function GameCanvasInner({
       if (data.timer !== undefined) setTimer(data.timer)
       if (data.dictionaryLoaded !== undefined)
         setDictionaryLoaded(data.dictionaryLoaded)
+      if (data.startingLives !== undefined) setStartingLives(data.startingLives)
     } else if (data.type === "ERROR") {
       addLog(`Error: ${data.message}`)
     } else if (data.type === "BONUS") {
@@ -152,6 +159,18 @@ function GameCanvasInner({
     setInput("")
   }
 
+  const handleSettingsSave = () => {
+    socket.send(
+      JSON.stringify({ type: "UPDATE_SETTINGS", startingLives: startingLives })
+    )
+    setIsSettingsOpen(false)
+  }
+
+  const handleKick = (playerId: string) => {
+    if (!confirm("Are you sure you want to kick this player?")) return
+    socket.send(JSON.stringify({ type: "KICK_PLAYER", playerId }))
+  }
+
   const [isNameDisabled, setIsNameDisabled] = useState(false)
   const [isChatDisabled, setIsChatDisabled] = useState(false)
 
@@ -184,62 +203,135 @@ function GameCanvasInner({
   }, [activePlayerId, gameState, socket.id])
 
   const isMyTurn = socket.id === activePlayerId
+  const isAmAdmin = players.find((p) => p.id === socket.id)?.isAdmin
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
+    <div className="container mx-auto p-4 flex flex-col gap-6 max-w-4xl">
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="card bg-base-100 w-96 shadow-xl p-6">
+            <h3 className="text-xl font-bold mb-4">Game Settings</h3>
+            <div className="form-control w-full max-w-xs mb-6">
+              <label className="label">
+                <span className="label-text">Starting Lives</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={startingLives}
+                onChange={(e) =>
+                  setStartingLives(parseInt(e.target.value) || 2)
+                }
+                className="input input-bordered w-full max-w-xs"
+              />
+              <label className="label">
+                <span className="label-text-alt opacity-70">
+                  Value between 1 and 10
+                </span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleSettingsSave}>
+                Save & Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card bg-base-100 shadow-xl p-6 text-center border border-base-300">
+        <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => (window.location.href = "/")}
-            className={styles.lobbyButton}
+            className="btn btn-ghost btn-sm"
           >
             ← Lobby
           </button>
-          <h1 className={styles.title}>💣 BlitzParty</h1>
-          <div className={styles.spacer}></div>
+          <h1 className="text-3xl font-black text-primary flex items-center gap-2">
+            <img src="/favicon.svg" alt="Logo" width="48" height="48" />{" "}
+            BlitzParty
+          </h1>
+          <div className="w-16 flex justify-end">
+            {gameState === "LOBBY" && isAmAdmin && (
+              <button
+                className="btn btn-ghost btn-sm btn-circle"
+                onClick={() => setIsSettingsOpen(true)}
+              >
+                ⚙️
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className={styles.roomInfo}>
-          Room: <strong>{room}</strong>
-          {password && "🔒"}
+        <div className="text-sm opacity-70 mb-4">
+          Room: <strong className="font-mono">{room}</strong>
+          {password && " 🔒"}
         </div>
 
         {gameState === "LOBBY" && (
-          <div>
-            <p>Welcome! Waiting for players...</p>
-            <div className={styles.nameForm}>
+          <div className="flex flex-col gap-4 items-center">
+            <p className="text-lg">Welcome! Waiting for players...</p>
+            <div className="badge badge-lg badge-neutral gap-2">
+              Lives: {startingLives} ❤
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 items-center w-full justify-center">
               <input
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Enter your name"
-                className={styles.nameInput}
+                className="input input-bordered w-full max-w-xs text-center"
               />
-              <button onClick={handleNameChange} disabled={isNameDisabled}>
+              <button
+                onClick={handleNameChange}
+                disabled={isNameDisabled}
+                className="btn btn-neutral"
+              >
                 {isNameDisabled ? "Wait..." : "Set Name"}
               </button>
             </div>
 
-            <button
-              onClick={handleStart}
-              disabled={players.length < 1 || !dictionaryLoaded}
-            >
-              {dictionaryLoaded ? "Start Game" : "Loading Dictionary..."}
-            </button>
+            {isAmAdmin ? (
+              <button
+                onClick={handleStart}
+                disabled={players.length < 1 || !dictionaryLoaded}
+                className="btn btn-primary btn-lg mt-4"
+              >
+                {dictionaryLoaded ? "Start Game" : "Loading Dictionary..."}
+              </button>
+            ) : (
+              <div className="mt-4 opacity-70 animate-pulse">
+                Waiting for host to start...
+              </div>
+            )}
           </div>
         )}
 
         {gameState === "PLAYING" && (
           <div>
-            <div className={styles.syllableBox}>{currentSyllable}</div>
-            <div className={styles.timerBar}>
-              <div
-                className={styles.timerFill}
-                style={{ width: `${(timer / 10) * 100}%` }}
-              ></div>
-              <span className={styles.timerText}>{timer.toFixed(1)}s</span>
+            <div className="text-6xl font-black text-secondary uppercase my-6 animate-pulse tracking-widest">
+              {currentSyllable}
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <div className="w-full h-8 bg-base-300 rounded-full overflow-hidden relative mb-6">
+              <div
+                className="h-full bg-secondary transition-all ease-linear"
+                style={{ width: `${(timer / 10) * 100}%` }}
+              ></div>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-base-content mix-blend-difference">
+                {timer.toFixed(1)}s
+              </span>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mb-4">
               <input
                 ref={inputRef}
                 value={isMyTurn ? input : activePlayerInput}
@@ -261,92 +353,134 @@ function GameCanvasInner({
                 }
                 disabled={!isMyTurn}
                 autoFocus={isMyTurn}
+                className={`input input-bordered w-full max-w-md text-center text-xl ${
+                  isMyTurn ? "input-primary ring-2 ring-primary/50" : ""
+                }`}
+                autoComplete="off"
               />
             </form>
-            <button
-              onClick={handleStop}
-              style={{
-                marginTop: "1rem",
-                background: "rgba(0,0,0,0.3)",
-                fontSize: "0.8rem",
-                padding: "0.5rem 1rem",
-              }}
-            >
-              Stop Game
-            </button>
+            {isAmAdmin && (
+              <button
+                onClick={handleStop}
+                className="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+              >
+                Stop Game
+              </button>
+            )}
           </div>
         )}
 
         {gameState === "ENDED" && (
-          <div>
-            <h2>Game Over!</h2>
+          <div className="py-8">
+            <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
             <p>Returning to lobby...</p>
           </div>
         )}
       </div>
 
-      <div className={styles.playerGrid}>
+      {/* Players Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {players.map((p) => (
           <div
             key={p.id}
-            className={`${styles.playerCard} ${
-              p.id === activePlayerId ? styles.active : ""
-            } ${!p.isAlive ? styles.dead : ""}`}
+            className={`card p-4 transition-all duration-300 border-2 relative group ${
+              p.id === activePlayerId
+                ? "border-primary bg-primary/10 scale-105 z-10 shadow-lg"
+                : "border-transparent bg-base-100 placeholder-opacity-50"
+            } ${!p.isAlive ? "opacity-50 grayscale" : ""}`}
           >
-            <div className={styles.playerInfo}>
-              <img
-                src={`data:image/svg+xml;base64,${btoa(
-                  generateAvatar(p.name)
-                )}`}
-                alt="Avatar"
-                className={styles.avatar}
-              />
-              <h3>
-                {p.name} {p.id === socket.id ? "(You)" : ""}
-              </h3>
-            </div>
-            <div className={styles.lives}>
-              {"❤".repeat(Math.max(0, p.lives))}
-            </div>
-            <div style={{ fontSize: "0.8rem", opacity: 0.8 }}>
-              Wins: {p.wins || 0}
+            {isAmAdmin && p.id !== socket.id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleKick(p.id)
+                }}
+                className="absolute top-2 right-2 btn btn-xs btn-error btn-square opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                title="Kick Player"
+              >
+                ✕
+              </button>
+            )}
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="avatar indicator">
+                {p.isAdmin && (
+                  <span className="indicator-item indicator-center badge badge-warning badge-sm">
+                    Admin
+                  </span>
+                )}
+                <div className="w-16 h-16 rounded-xl shadow-md border border-base-content/10">
+                  <img
+                    src={`data:image/svg+xml;base64,${btoa(
+                      generateAvatar(p.name)
+                    )}`}
+                    alt="Avatar"
+                  />
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="font-bold flex items-center gap-1 justify-center">
+                  {p.name}{" "}
+                  {p.id === socket.id && (
+                    <span className="badge badge-xs badge-primary">You</span>
+                  )}
+                </h3>
+                <div className="flex gap-1 justify-center text-error mt-1 text-sm">
+                  {"❤".repeat(Math.max(0, p.lives))}
+                </div>
+                <div className="text-xs opacity-60 mt-1">
+                  Wins: {p.wins || 0}
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className={styles.messageLog}>
-        {logs.map((l, i) => (
-          <div key={i}>{l}</div>
-        ))}
-      </div>
-
-      {/* Chat Box */}
-      <div className={styles.chatBox}>
-        <div className={styles.chatMessages}>
-          {chatMessages.map((msg, i) => (
-            <div key={i} className={styles.chatEntry}>
-              <span className={styles.senderName}>{msg.senderName}:</span>{" "}
-              <span className={styles.messageText}>{msg.text}</span>
-            </div>
-          ))}
-          <div ref={chatEndRef} />
+      {/* Logs & Chat */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card bg-base-100 p-4 h-48 shadow-lg">
+          <h3 className="text-sm font-bold opacity-50 mb-2 uppercase tracking-wide">
+            Game Log
+          </h3>
+          <div className="flex-1 overflow-y-auto font-mono text-xs space-y-1">
+            {logs.map((l, i) => (
+              <div key={i} className="border-l-2 border-primary/20 pl-2">
+                {l}
+              </div>
+            ))}
+          </div>
         </div>
-        <form onSubmit={handleChatSubmit} className={styles.chatForm}>
-          <input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Say something..."
-            className={styles.chatInput}
-          />
-          <button
-            type="submit"
-            className={styles.chatButton}
-            disabled={isChatDisabled}
-          >
-            Send
-          </button>
-        </form>
+
+        <div className="card bg-base-100 p-4 h-48 shadow-lg flex flex-col">
+          <h3 className="text-sm font-bold opacity-50 mb-2 uppercase tracking-wide">
+            Chat
+          </h3>
+          <div className="flex-1 overflow-y-auto space-y-2 mb-2">
+            {chatMessages.map((msg, i) => (
+              <div key={i} className="text-sm">
+                <span className="font-bold opacity-70">{msg.senderName}:</span>{" "}
+                <span className="opacity-90">{msg.text}</span>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <form onSubmit={handleChatSubmit} className="flex gap-2">
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Message..."
+              className="input input-sm input-bordered flex-1"
+            />
+            <button
+              type="submit"
+              className="btn btn-sm btn-ghost"
+              disabled={isChatDisabled}
+            >
+              Send
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )
@@ -402,15 +536,16 @@ export default function GameCanvas({ room }: { room: string }) {
 
   if (isBlocked) {
     return (
-      <div className={styles.container}>
-        <div className={styles.card}>
-          <h2>Multiple Tabs Detected</h2>
-          <p>You are already active in another game tab.</p>
-          <p>Please close this tab or the other one to continue.</p>
+      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
+        <div className="card bg-base-100 shadow-xl p-8 text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Multiple Tabs Detected</h2>
+          <p className="mb-6">You are already active in another game tab.</p>
+          <p className="mb-6 opacity-70">
+            Please close this tab or the other one to continue.
+          </p>
           <button
             onClick={() => (window.location.href = "/")}
-            className={styles.primaryButton}
-            style={{ marginTop: "1rem" }}
+            className="btn btn-primary"
           >
             Back to Lobby
           </button>
@@ -421,35 +556,33 @@ export default function GameCanvas({ room }: { room: string }) {
 
   if (checkingStatus) {
     return (
-      <div className={styles.container}>
-        <div className={styles.card}>Loading room info...</div>
+      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
+        <div className="loading loading-spinner loading-lg"></div>
       </div>
     )
   }
 
   if (needsPassword) {
     return (
-      <div className={styles.container}>
-        <div className={styles.card}>
-          <h2>Private Room</h2>
-          <p>This room requires a password.</p>
-          <form onSubmit={handlePasswordSubmit} className={styles.nameForm}>
+      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
+        <div className="card bg-base-100 shadow-xl p-8 text-center max-w-sm w-full">
+          <h2 className="text-2xl font-bold mb-2">Private Room</h2>
+          <p className="mb-6 opacity-70">This room requires a password.</p>
+          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter Password"
-              className={styles.nameInput}
+              className="input input-bordered w-full"
             />
-            <button type="submit">Join</button>
+            <button type="submit" className="btn btn-primary w-full">
+              Join
+            </button>
           </form>
           <button
             onClick={() => (window.location.href = "/")}
-            style={{
-              marginTop: "1rem",
-              background: "transparent",
-              border: "1px solid #444",
-            }}
+            className="btn btn-ghost w-full mt-2"
           >
             Cancel
           </button>
