@@ -92,7 +92,7 @@ function GameCanvasInner({
   })
 
   const [chatMessages, setChatMessages] = useState<
-    { senderName: string; text: string }[]
+    { senderName: string; text: string; timestamp: number }[]
   >([])
   const [chatInput, setChatInput] = useState("")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -134,9 +134,14 @@ function GameCanvasInner({
       addLog(`Game Over! Winner: ${winnerName}`)
     } else if (data.type === "CHAT_MESSAGE" && data.senderName && data.text) {
       setChatMessages((prev) =>
-        [...prev, { senderName: data.senderName!, text: data.text! }].slice(
-          -200,
-        ),
+        [
+          ...prev,
+          {
+            senderName: data.senderName!,
+            text: data.text!,
+            timestamp: Date.now(),
+          },
+        ].slice(-200),
       )
     } else if (data.type === "TYPING_UPDATE" && data.text !== undefined) {
       if (data.playerId !== socket.id) {
@@ -301,6 +306,7 @@ function GameCanvasInner({
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Enter your name"
                 className="input input-bordered w-full max-w-xs text-center"
+                maxLength={16}
               />
               <button
                 onClick={handleNameChange}
@@ -471,6 +477,12 @@ function GameCanvasInner({
           <div className="flex-1 overflow-y-auto space-y-2 mb-2">
             {chatMessages.map((msg, i) => (
               <div key={i} className="text-sm">
+                <span className="opacity-50 text-xs mr-2 font-mono">
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
                 <span className="font-bold opacity-70">{msg.senderName}:</span>{" "}
                 <span className="opacity-90">{msg.text}</span>
               </div>

@@ -90,6 +90,32 @@ export default class Server implements Party.Server {
     }
   }
 
+  getUniqueName(desiredName: string, excludePlayerId?: string): string {
+    let baseName = desiredName.trim()
+    if (baseName.length > 16) baseName = baseName.substring(0, 16)
+
+    // Normalize existing names for case-insensitive check
+    const existingNames = new Set<string>()
+    for (const p of this.players.values()) {
+      if (p.id !== excludePlayerId) {
+        existingNames.add(p.name.toLowerCase())
+      }
+    }
+
+    if (!existingNames.has(baseName.toLowerCase())) return baseName
+
+    let counter = 2
+    while (counter < 100) {
+      // Try appending number. Ensure total length doesn't exceed too much,
+      // but usually we prioritize uniqueness.
+      // "Name (2)" might exceed 16, but that's acceptable for differentiation.
+      const candidate = `${baseName} (${counter})`
+      if (!existingNames.has(candidate.toLowerCase())) return candidate
+      counter++
+    }
+    return baseName // Fallback
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // 0. Validate Room ID (Security)
     if (!/^[a-z]{4}$/.test(this.room.id)) {
@@ -171,9 +197,8 @@ export default class Server implements Party.Server {
     })
 
     // Use the name from query or default to Guest
-    const name = nameParam
-      ? nameParam.substring(0, 12)
-      : `Guest ${conn.id.substring(0, 4)}`
+    let rawName = nameParam || `Guest ${conn.id.substring(0, 4)}`
+    const name = this.getUniqueName(rawName, conn.id)
 
     // First player is admin
     const isAdmin = this.players.size === 0
@@ -357,7 +382,7 @@ export default class Server implements Party.Server {
 
             const p = this.players.get(sender.id)
             if (p && typeof data.name === "string") {
-              const cleanName = data.name.trim().substring(0, 12)
+              const cleanName = this.getUniqueName(data.name, sender.id)
               if (cleanName.length > 0) {
                 p.name = cleanName
                 limits.lastNameChange = now
