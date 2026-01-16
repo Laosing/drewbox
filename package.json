@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "mkdir -p dist && cp public/db.sqlite dist/ && lsof -t -i:1999 -i:5173 -i:5174 | xargs -r kill -9 || true; vite & partykit dev --live",
+    "dev": "mkdir -p dist && cp public/dictionary.bin dist/ && lsof -t -i:1999 -i:5173 -i:5174 | xargs -r kill -9 || true; vite & partykit dev --live",
     "build": "vite build",
     "deploy": "pnpm run build && partykit deploy",
     "test": "vitest"

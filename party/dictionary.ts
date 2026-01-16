@@ -23,7 +23,7 @@ export class DictionaryManager {
     console.log("Loading Dictionary from SQLite...")
 
     try {
-      const dbUrl = new URL("/db.sqlite", origin).toString()
+      const dbUrl = new URL("/dictionary.bin", origin).toString()
 
       const dbRes = await fetch(dbUrl)
       if (!dbRes.ok) throw new Error(`Fetch failed: ${dbRes.status}`)
