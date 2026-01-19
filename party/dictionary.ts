@@ -72,7 +72,7 @@ export class DictionaryManager {
     const normalizedSyllable = syllable.toLowerCase().trim()
 
     if (!normalizedWord.includes(normalizedSyllable)) {
-      return { valid: false, reason: "Word does not contain the syllable." }
+      return { valid: false, reason: "Missing the letters above" }
     }
 
     try {
@@ -88,7 +88,7 @@ export class DictionaryManager {
       }
       stmt.free()
 
-      if (!valid) return { valid: false, reason: "Word not in dictionary." }
+      if (!valid) return { valid: false, reason: "Not in my dictionary" }
       return { valid: true }
     } catch (e: any) {
       logger.error("SQL Error in isValid", e)

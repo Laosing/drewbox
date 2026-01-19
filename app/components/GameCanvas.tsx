@@ -32,7 +32,10 @@ type ServerMessage = {
   dictionaryLoaded?: boolean
   startingLives?: number
   maxTimer?: number
+  chatEnabled?: boolean
 }
+
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 
 function GameCanvasInner({
   room,
@@ -104,8 +107,10 @@ function GameCanvasInner({
     { senderName: string; text: string; timestamp: number }[]
   >([])
   const [chatInput, setChatInput] = useState("")
+  const [chatEnabled, setChatEnabled] = useState(true)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isNameModalOpen, setIsNameModalOpen] = useState(false)
+  const [tempError, setTempError] = useState<string | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -131,8 +136,11 @@ function GameCanvasInner({
         setDictionaryLoaded(data.dictionaryLoaded)
       if (data.startingLives !== undefined) setStartingLives(data.startingLives)
       if (data.maxTimer !== undefined) setMaxTimer(data.maxTimer)
+      if (data.chatEnabled !== undefined) setChatEnabled(data.chatEnabled)
     } else if (data.type === ServerMessageType.ERROR) {
       addLog(`Error: ${data.message}`)
+      setTempError(data.message || "Error")
+      setTimeout(() => setTempError(null), 500)
     } else if (data.type === ServerMessageType.BONUS) {
       addLog(`Bonus: ${data.message}`)
     } else if (data.type === ServerMessageType.EXPLOSION) {
@@ -197,6 +205,7 @@ function GameCanvasInner({
         type: ClientMessageType.UPDATE_SETTINGS,
         startingLives: startingLives,
         maxTimer: maxTimer,
+        chatEnabled: chatEnabled,
       }),
     )
     setIsSettingsOpen(false)
@@ -327,6 +336,19 @@ function GameCanvasInner({
                 </span>
               </label>
             </div>
+
+            <div className="form-control w-full max-w-xs mb-6 px-1">
+              <label className="label cursor-pointer justify-start gap-4">
+                <span className="label-text font-bold">Enable Chat</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={chatEnabled}
+                  onChange={(e) => setChatEnabled(e.target.checked)}
+                />
+              </label>
+            </div>
+
             <div className="flex justify-end gap-2">
               <button
                 className="btn btn-ghost"
@@ -409,6 +431,23 @@ function GameCanvasInner({
 
         {gameState === GameState.PLAYING && (
           <div>
+            <div className="my-1 flex w-full justify-center gap-0.5 flex-wrap px-2">
+              {[...ALPHABET].map((letter) => {
+                const isUsed = players
+                  .find((p) => p.id === socket.id)
+                  ?.usedLetters.includes(letter.toLocaleUpperCase())
+                return (
+                  <div
+                    className={`kbd ${
+                      isUsed ? "kbd-primary opacity-100" : "opacity-30"
+                    }`}
+                    key={letter}
+                  >
+                    {letter.toUpperCase()}
+                  </div>
+                )
+              })}
+            </div>
             <div className="text-6xl font-black text-secondary uppercase my-6 animate-pulse tracking-widest">
               {currentSyllable}
             </div>
@@ -416,14 +455,20 @@ function GameCanvasInner({
             <div className="w-full h-8 bg-base-300 rounded-full overflow-hidden relative mb-6">
               <div
                 className="h-full bg-secondary transition-all ease-linear"
-                style={{ width: `${(timer / 10) * 100}%` }}
+                style={{ width: `${(timer / maxTimer) * 100}%` }}
               ></div>
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-base-content mix-blend-difference">
-                {timer.toFixed(1)}s
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-base-content">
+                {timer}
               </span>
             </div>
 
-            <form onSubmit={handleSubmit} className="mb-4">
+            <form onSubmit={handleSubmit} className="mb-4 indicator">
+              {tempError && (
+                <span className="indicator-item indicator-center badge badge-error">
+                  {tempError}
+                </span>
+              )}
+
               <input
                 ref={inputRef}
                 value={isMyTurn ? input : activePlayerInput}
@@ -457,7 +502,7 @@ function GameCanvasInner({
             {isAmAdmin && (
               <button
                 onClick={handleStop}
-                className="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+                className="btn btn-warning btn-sm block m-auto"
               >
                 Stop Game
               </button>
@@ -571,14 +616,15 @@ function GameCanvasInner({
             <input
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Message..."
+              placeholder={chatEnabled ? "Message..." : "Chat Disabled"}
               className="input input-sm input-bordered flex-1"
               maxLength={100}
+              disabled={!chatEnabled}
             />
             <button
               type="submit"
               className="btn btn-sm btn-ghost"
-              disabled={isChatDisabled}
+              disabled={isChatDisabled || !chatEnabled}
             >
               Send
             </button>

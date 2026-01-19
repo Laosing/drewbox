@@ -37,6 +37,8 @@ export default class Server implements Party.Server {
   activePlayerId: string | null = null
   timer: number = 0
   maxTimer: number = 10
+  startingLives: number = 2
+  chatEnabled: boolean = true
 
   tickInterval: ReturnType<typeof setInterval> | null = null
 
@@ -419,6 +421,8 @@ export default class Server implements Party.Server {
 
         case ClientMessageType.CHAT_MESSAGE:
           if (typeof data.text === "string") {
+            if (!this.chatEnabled) return
+
             const limits = this.rateLimits.get(sender.id) || {
               lastChat: 0,
               lastNameChange: 0,
@@ -459,6 +463,9 @@ export default class Server implements Party.Server {
               if (timer > 20) timer = 20
               this.maxTimer = timer
             }
+            if (typeof data.chatEnabled === "boolean") {
+              this.chatEnabled = data.chatEnabled
+            }
             this.broadcastState()
           }
           break
@@ -487,7 +494,6 @@ export default class Server implements Party.Server {
   }
 
   initialAliveCount: number = 0
-  startingLives: number = 2
 
   startGame() {
     if (this.players.size < 1) return
@@ -606,7 +612,7 @@ export default class Server implements Party.Server {
 
     const word = rawWord.trim()
     if (this.usedWords.has(word.toLowerCase())) {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Word already used!",
       })
@@ -636,7 +642,7 @@ export default class Server implements Party.Server {
 
       this.nextTurn(true)
     } else {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: check.reason,
       })
@@ -684,6 +690,7 @@ export default class Server implements Party.Server {
         dictionaryLoaded: this.dictionaryReady,
         startingLives: this.startingLives,
         maxTimer: this.maxTimer,
+        chatEnabled: this.chatEnabled,
       }),
     )
   }
