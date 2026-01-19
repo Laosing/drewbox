@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react"
 import usePartySocket from "partysocket/react"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
-import { generateAvatar } from "../utils/avatar"
 import { CopyIcon, SettingsIcon, EditIcon } from "./Icons"
-import { Logo } from "./Logo"
+import { CustomAvatar, Logo } from "./Logo"
+import {
+  ClientMessageType,
+  ServerMessageType,
+  GameState,
+} from "../../shared/types"
 
 type Player = {
   id: string
@@ -14,8 +18,6 @@ type Player = {
   usedLetters: string[]
   isAdmin?: boolean
 }
-
-type GameState = "LOBBY" | "PLAYING" | "ENDED"
 
 type ServerMessage = {
   type: string
@@ -39,7 +41,7 @@ function GameCanvasInner({
   room: string
   password?: string | null
 }) {
-  const [gameState, setGameState] = useState<GameState>("LOBBY")
+  const [gameState, setGameState] = useState<GameState>(GameState.LOBBY)
   const [players, setPlayers] = useState<Player[]>([])
   const [currentSyllable, setCurrentSyllable] = useState("")
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null)
@@ -118,7 +120,7 @@ function GameCanvasInner({
   const handleMessage = (
     data: ServerMessage & { senderName?: string; text?: string },
   ) => {
-    if (data.type === "STATE_UPDATE") {
+    if (data.type === ServerMessageType.STATE_UPDATE) {
       if (data.gameState) setGameState(data.gameState)
       if (data.players) setPlayers(data.players)
       if (data.currentSyllable) setCurrentSyllable(data.currentSyllable)
@@ -129,19 +131,25 @@ function GameCanvasInner({
         setDictionaryLoaded(data.dictionaryLoaded)
       if (data.startingLives !== undefined) setStartingLives(data.startingLives)
       if (data.maxTimer !== undefined) setMaxTimer(data.maxTimer)
-    } else if (data.type === "ERROR") {
+    } else if (data.type === ServerMessageType.ERROR) {
       addLog(`Error: ${data.message}`)
-    } else if (data.type === "BONUS") {
+    } else if (data.type === ServerMessageType.BONUS) {
       addLog(`Bonus: ${data.message}`)
-    } else if (data.type === "EXPLOSION") {
-      addLog(`BOOM! Player exploded!`)
-    } else if (data.type === "GAME_OVER") {
+    } else if (data.type === ServerMessageType.EXPLOSION) {
+      const pName =
+        players.find((p) => p.id === data.playerId)?.name || "Unknown"
+      addLog(`BOOM! Player: ${pName} exploded!`)
+    } else if (data.type === ServerMessageType.GAME_OVER) {
       const winnerName =
         players.find((p) => p.id === data.winnerId)?.name ||
         data.winnerId ||
         "None"
       addLog(`Game Over! Winner: ${winnerName}`)
-    } else if (data.type === "CHAT_MESSAGE" && data.senderName && data.text) {
+    } else if (
+      data.type === ServerMessageType.CHAT_MESSAGE &&
+      data.senderName &&
+      data.text
+    ) {
       setChatMessages((prev) =>
         [
           ...prev,
@@ -152,7 +160,10 @@ function GameCanvasInner({
           },
         ].slice(-100),
       )
-    } else if (data.type === "TYPING_UPDATE" && data.text !== undefined) {
+    } else if (
+      data.type === ServerMessageType.TYPING_UPDATE &&
+      data.text !== undefined
+    ) {
       if (data.playerId !== socket.id) {
         setActivePlayerInput(data.text)
       }
@@ -164,24 +175,26 @@ function GameCanvasInner({
   }
 
   const handleStart = () => {
-    socket.send(JSON.stringify({ type: "START_GAME" }))
+    socket.send(JSON.stringify({ type: ClientMessageType.START_GAME }))
   }
 
   const handleStop = () => {
-    socket.send(JSON.stringify({ type: "STOP_GAME" }))
+    socket.send(JSON.stringify({ type: ClientMessageType.STOP_GAME }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!input) return
-    socket.send(JSON.stringify({ type: "SUBMIT_WORD", word: input }))
+    socket.send(
+      JSON.stringify({ type: ClientMessageType.SUBMIT_WORD, word: input }),
+    )
     setInput("")
   }
 
   const handleSettingsSave = () => {
     socket.send(
       JSON.stringify({
-        type: "UPDATE_SETTINGS",
+        type: ClientMessageType.UPDATE_SETTINGS,
         startingLives: startingLives,
         maxTimer: maxTimer,
       }),
@@ -191,7 +204,9 @@ function GameCanvasInner({
 
   const handleKick = (playerId: string) => {
     if (!confirm("Are you sure you want to kick this player?")) return
-    socket.send(JSON.stringify({ type: "KICK_PLAYER", playerId }))
+    socket.send(
+      JSON.stringify({ type: ClientMessageType.KICK_PLAYER, playerId }),
+    )
   }
 
   const [isNameDisabled, setIsNameDisabled] = useState(false)
@@ -200,7 +215,9 @@ function GameCanvasInner({
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!chatInput.trim()) return
-    socket.send(JSON.stringify({ type: "CHAT_MESSAGE", text: chatInput }))
+    socket.send(
+      JSON.stringify({ type: ClientMessageType.CHAT_MESSAGE, text: chatInput }),
+    )
     setChatInput("")
 
     setIsChatDisabled(true)
@@ -210,14 +227,15 @@ function GameCanvasInner({
   const handleNameChange = () => {
     setMyName(nameInput) // Commit the new name
     localStorage.setItem("blitzparty_username", nameInput)
-    socket.send(JSON.stringify({ type: "SET_NAME", name: nameInput }))
-
+    socket.send(
+      JSON.stringify({ type: ClientMessageType.SET_NAME, name: nameInput }),
+    )
     setIsNameDisabled(true)
     setTimeout(() => setIsNameDisabled(false), 5000)
   }
 
   useEffect(() => {
-    if (socket.id === activePlayerId && gameState === "PLAYING") {
+    if (socket.id === activePlayerId && gameState === GameState.PLAYING) {
       inputRef.current?.focus()
       setInput("") // Clear input when turn starts
     } else {
@@ -334,7 +352,7 @@ function GameCanvasInner({
           </button>
           <Logo name={room} />
           <div className="w-16 flex justify-end">
-            {gameState === "LOBBY" && isAmAdmin && (
+            {gameState === GameState.LOBBY && isAmAdmin && (
               <button
                 className="btn btn-ghost btn-sm btn-circle"
                 onClick={() => setIsSettingsOpen(true)}
@@ -358,8 +376,7 @@ function GameCanvasInner({
             {password && " 🔒"}
           </button>
         </div>
-
-        {gameState === "LOBBY" && (
+        {gameState === GameState.LOBBY && (
           <div className="flex flex-col gap-4 items-center">
             <p className="text-lg">
               Welcome to BlitzParty! Type a word containing the letters before
@@ -390,7 +407,7 @@ function GameCanvasInner({
           </div>
         )}
 
-        {gameState === "PLAYING" && (
+        {gameState === GameState.PLAYING && (
           <div>
             <div className="text-6xl font-black text-secondary uppercase my-6 animate-pulse tracking-widest">
               {currentSyllable}
@@ -415,7 +432,10 @@ function GameCanvasInner({
                     const val = e.target.value
                     setInput(val)
                     socket.send(
-                      JSON.stringify({ type: "UPDATE_TYPING", text: val }),
+                      JSON.stringify({
+                        type: ClientMessageType.UPDATE_TYPING,
+                        text: val,
+                      }),
                     )
                   }
                 }}
@@ -444,8 +464,7 @@ function GameCanvasInner({
             )}
           </div>
         )}
-
-        {gameState === "ENDED" && (
+        {gameState === GameState.ENDED && (
           <div className="py-8">
             <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
             <p>Returning to lobby...</p>
@@ -484,14 +503,7 @@ function GameCanvasInner({
                     Admin
                   </span>
                 )}
-                <div className="w-16 h-16 rounded-xl shadow-md border border-base-content/10">
-                  <img
-                    src={`data:image/svg+xml;base64,${btoa(
-                      generateAvatar(p.name),
-                    )}`}
-                    alt="Avatar"
-                  />
-                </div>
+                <CustomAvatar name={p.name} />
               </div>
               <div className="text-center">
                 <h3 className="font-bold flex items-center gap-1 justify-center">

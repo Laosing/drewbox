@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import usePartySocket from "partysocket/react"
 import { Logo } from "./Logo"
+import { ServerMessageType } from "../../shared/types"
 
 export default function LobbyView() {
   const [availableRooms, setAvailableRooms] = useState<
@@ -31,7 +32,7 @@ export default function LobbyView() {
     room: "global",
     onMessage(evt) {
       const data = JSON.parse(evt.data)
-      if (data.type === "ROOM_LIST") {
+      if (data.type === ServerMessageType.ROOM_LIST) {
         setAvailableRooms(data.rooms)
       }
     },

@@ -1,4 +1,5 @@
 import type * as Party from "partykit/server"
+import { ServerMessageType } from "../shared/types"
 
 type RoomInfo = {
   id: string
@@ -22,7 +23,7 @@ export default class LobbyServer implements Party.Server {
   async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // Send current room list to new connector
     const rooms = await this.getRooms()
-    conn.send(JSON.stringify({ type: "ROOM_LIST", rooms }))
+    conn.send(JSON.stringify({ type: ServerMessageType.ROOM_LIST, rooms }))
   }
 
   async onRequest(req: Party.Request) {
@@ -109,6 +110,8 @@ export default class LobbyServer implements Party.Server {
 
   async broadcastRooms() {
     const rooms = await this.getRooms()
-    this.lobby.broadcast(JSON.stringify({ type: "ROOM_LIST", rooms }))
+    this.lobby.broadcast(
+      JSON.stringify({ type: ServerMessageType.ROOM_LIST, rooms }),
+    )
   }
 }

@@ -12,7 +12,11 @@ type Player = {
   isAdmin: boolean
 }
 
-type GameState = "LOBBY" | "PLAYING" | "ENDED"
+import {
+  ClientMessageType,
+  ServerMessageType,
+  GameState,
+} from "../shared/types"
 
 export default class Server implements Party.Server {
   // ... (options, room, dictionary, players, gameState, etc definitions constant)
@@ -25,7 +29,7 @@ export default class Server implements Party.Server {
   dictionary: DictionaryManager
 
   players: Map<string, Player> = new Map()
-  gameState: GameState = "LOBBY"
+  gameState: GameState = GameState.LOBBY
 
   // ... (rest of properties)
   currentSyllable: string = ""
@@ -201,7 +205,7 @@ export default class Server implements Party.Server {
       } else {
         this.logger.error("Dictionary failed to load:", result.error)
         this.broadcast({
-          type: "ERROR",
+          type: ServerMessageType.ERROR,
           message: `Failed to load dictionary: ${
             result.error || "Unknown error"
           }. Please refresh.`,
@@ -220,7 +224,7 @@ export default class Server implements Party.Server {
       id: conn.id,
       name,
       lives: 2,
-      isAlive: this.gameState !== "PLAYING",
+      isAlive: this.gameState !== GameState.PLAYING,
       wins: 0,
       usedLetters: [],
       isAdmin,
@@ -275,7 +279,7 @@ export default class Server implements Party.Server {
 
     this.checkWinCondition() // Check if game should end due to lack of players
 
-    if (this.gameState === "PLAYING") {
+    if (this.gameState === GameState.PLAYING) {
       if (conn.id === this.activePlayerId) {
         // If the active player left, immediately pass turn to next
         this.nextTurn(false, false, forceNextId)
@@ -283,7 +287,7 @@ export default class Server implements Party.Server {
     } else if (this.players.size === 0) {
       // Cleanup if empty
       if (this.tickInterval) clearInterval(this.tickInterval)
-      this.gameState = "LOBBY"
+      this.gameState = GameState.LOBBY
       this.usedWords.clear()
     }
 
@@ -343,18 +347,18 @@ export default class Server implements Party.Server {
       const senderPlayer = this.players.get(sender.id)
 
       switch (data.type) {
-        case "START_GAME":
+        case ClientMessageType.START_GAME:
           if (
             senderPlayer?.isAdmin &&
-            this.gameState === "LOBBY" &&
+            this.gameState === GameState.LOBBY &&
             this.players.size > 0
           ) {
             this.startGame()
           }
           break
 
-        case "STOP_GAME":
-          if (senderPlayer?.isAdmin && this.gameState === "PLAYING") {
+        case ClientMessageType.STOP_GAME:
+          if (senderPlayer?.isAdmin && this.gameState === GameState.PLAYING) {
             // If strictly one player, treat them as winner to avoid "None"
             if (this.players.size === 1) {
               this.endGame(this.players.keys().next().value)
@@ -364,9 +368,9 @@ export default class Server implements Party.Server {
           }
           break
 
-        case "SUBMIT_WORD":
+        case ClientMessageType.SUBMIT_WORD:
           if (
-            this.gameState === "PLAYING" &&
+            this.gameState === GameState.PLAYING &&
             this.activePlayerId === sender.id &&
             typeof data.word === "string"
           ) {
@@ -374,21 +378,21 @@ export default class Server implements Party.Server {
           }
           break
 
-        case "UPDATE_TYPING":
+        case ClientMessageType.UPDATE_TYPING:
           if (
-            this.gameState === "PLAYING" &&
+            this.gameState === GameState.PLAYING &&
             this.activePlayerId === sender.id &&
             typeof data.text === "string"
           ) {
             this.broadcast({
-              type: "TYPING_UPDATE",
+              type: ServerMessageType.TYPING_UPDATE,
               text: data.text,
               playerId: sender.id,
             })
           }
           break
 
-        case "SET_NAME":
+        case ClientMessageType.SET_NAME:
           {
             const limits = this.rateLimits.get(sender.id) || {
               lastChat: 0,
@@ -413,7 +417,7 @@ export default class Server implements Party.Server {
           }
           break
 
-        case "CHAT_MESSAGE":
+        case ClientMessageType.CHAT_MESSAGE:
           if (typeof data.text === "string") {
             const limits = this.rateLimits.get(sender.id) || {
               lastChat: 0,
@@ -432,7 +436,7 @@ export default class Server implements Party.Server {
 
               const senderPlayer = this.players.get(sender.id)
               this.broadcast({
-                type: "CHAT_MESSAGE",
+                type: ServerMessageType.CHAT_MESSAGE,
                 senderId: sender.id,
                 senderName: senderPlayer ? senderPlayer.name : "Unknown",
                 text,
@@ -441,7 +445,7 @@ export default class Server implements Party.Server {
           }
           break
 
-        case "UPDATE_SETTINGS":
+        case ClientMessageType.UPDATE_SETTINGS:
           if (senderPlayer?.isAdmin) {
             if (typeof data.startingLives === "number") {
               let lives = Math.floor(data.startingLives)
@@ -459,7 +463,7 @@ export default class Server implements Party.Server {
           }
           break
 
-        case "KICK_PLAYER":
+        case ClientMessageType.KICK_PLAYER:
           if (senderPlayer?.isAdmin && typeof data.playerId === "string") {
             // Cannot kick self
             if (data.playerId === sender.id) return
@@ -489,7 +493,7 @@ export default class Server implements Party.Server {
     if (this.players.size < 1) return
     if (!this.dictionaryReady) return // Prevent starting without dictionary
 
-    this.gameState = "PLAYING"
+    this.gameState = GameState.PLAYING
     this.usedWords.clear()
     this.initialAliveCount = this.players.size
 
@@ -511,12 +515,12 @@ export default class Server implements Party.Server {
   }
 
   tick() {
-    if (this.gameState !== "PLAYING") return
+    if (this.gameState !== GameState.PLAYING) return
 
     this.timer -= 1
     // Broadcast timer every tick (optimized to only send timer field if possible,
     // but our handleMessage handles partial updates)
-    this.broadcast({ type: "STATE_UPDATE", timer: this.timer })
+    this.broadcast({ type: ServerMessageType.STATE_UPDATE, timer: this.timer })
 
     if (this.timer <= 0) {
       this.handleExplosion()
@@ -532,11 +536,14 @@ export default class Server implements Party.Server {
       if (p.lives <= 0) {
         p.isAlive = false
       }
-      this.broadcast({ type: "EXPLOSION", playerId: this.activePlayerId })
+      this.broadcast({
+        type: ServerMessageType.EXPLOSION,
+        playerId: this.activePlayerId,
+      })
     }
 
     this.checkWinCondition()
-    if (this.gameState === "PLAYING") {
+    if (this.gameState === GameState.PLAYING) {
       this.nextTurn(false)
     }
   }
@@ -546,7 +553,7 @@ export default class Server implements Party.Server {
     isFirst: boolean = false,
     overridePlayerId?: string,
   ) {
-    if (this.gameState !== "PLAYING") return
+    if (this.gameState !== GameState.PLAYING) return
 
     const playerIds = Array.from(this.players.values())
       .filter((p) => p.isAlive)
@@ -591,7 +598,7 @@ export default class Server implements Party.Server {
       )
       // Silent ignore or error
       this.sendTo(playerId, {
-        type: "ERROR",
+        type: ServerMessageType.ERROR,
         message: "Too fast! Are you a bot?",
       })
       return
@@ -599,7 +606,10 @@ export default class Server implements Party.Server {
 
     const word = rawWord.trim()
     if (this.usedWords.has(word.toLowerCase())) {
-      this.sendTo(playerId, { type: "ERROR", message: "Word already used!" })
+      this.sendTo(playerId, {
+        type: ServerMessageType.ERROR,
+        message: "Word already used!",
+      })
       return
     }
 
@@ -618,7 +628,7 @@ export default class Server implements Party.Server {
           p.lives++
           p.usedLetters = []
           this.sendTo(playerId, {
-            type: "BONUS",
+            type: ServerMessageType.BONUS,
             message: "Alphabet Complete! +1 Life",
           })
         }
@@ -626,7 +636,10 @@ export default class Server implements Party.Server {
 
       this.nextTurn(true)
     } else {
-      this.sendTo(playerId, { type: "ERROR", message: check.reason })
+      this.sendTo(playerId, {
+        type: ServerMessageType.ERROR,
+        message: check.reason,
+      })
     }
   }
 
@@ -644,9 +657,9 @@ export default class Server implements Party.Server {
   }
 
   endGame(winnerId?: string | null) {
-    this.gameState = "ENDED"
+    this.gameState = GameState.ENDED
     if (this.tickInterval) clearInterval(this.tickInterval)
-    this.broadcast({ type: "GAME_OVER", winnerId })
+    this.broadcast({ type: ServerMessageType.GAME_OVER, winnerId })
 
     if (winnerId) {
       const winner = this.players.get(winnerId)
@@ -655,14 +668,14 @@ export default class Server implements Party.Server {
       }
     }
 
-    this.gameState = "LOBBY"
+    this.gameState = GameState.LOBBY
     this.broadcastState()
   }
 
   broadcastState() {
     this.room.broadcast(
       JSON.stringify({
-        type: "STATE_UPDATE",
+        type: ServerMessageType.STATE_UPDATE,
         gameState: this.gameState,
         players: Array.from(this.players.values()),
         currentSyllable: this.currentSyllable,
