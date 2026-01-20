@@ -8,6 +8,7 @@ export enum ServerMessageType {
   TYPING_UPDATE = "TYPING_UPDATE",
   ROOM_LIST = "ROOM_LIST",
   SYSTEM_MESSAGE = "SYSTEM_MESSAGE",
+  VALID_WORD = "VALID_WORD",
 }
 
 export enum ClientMessageType {

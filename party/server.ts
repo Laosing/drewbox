@@ -394,12 +394,7 @@ export default class Server implements Party.Server {
               type: ServerMessageType.SYSTEM_MESSAGE,
               message: "Admin stopped the game!",
             })
-            // If strictly one player, treat them as winner to avoid "None"
-            if (this.players.size === 1) {
-              this.endGame(this.players.keys().next().value)
-            } else {
-              this.endGame(null)
-            }
+            this.endGame(null)
           }
           break
 
@@ -748,10 +743,15 @@ export default class Server implements Party.Server {
           p.usedLetters = []
           this.sendTo(playerId, {
             type: ServerMessageType.BONUS,
-            message: "Alphabet Complete! +1 Life",
+            message: `Alphabet Complete! ${p.name} gains a life!`,
           })
         }
       }
+
+      this.broadcast({
+        type: ServerMessageType.VALID_WORD,
+        message: `${p?.name || "Player"} submitted: ${word}`,
+      })
 
       this.nextTurn()
     } else {

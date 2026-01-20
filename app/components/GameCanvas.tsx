@@ -193,12 +193,16 @@ function GameCanvasInner({
       addLog(`BOOM! Player: ${pName} lost a life!`)
     } else if (data.type === ServerMessageType.SYSTEM_MESSAGE) {
       addLog(`${data.message}`)
+    } else if (data.type === ServerMessageType.VALID_WORD) {
+      addLog(`${data.message}`)
     } else if (data.type === ServerMessageType.GAME_OVER) {
-      const winnerName =
-        players.find((p) => p.id === data.winnerId)?.name ||
-        data.winnerId ||
-        "None"
-      addLog(`Game Over! Winner: ${winnerName}`)
+      if (data.winnerId) {
+        const winnerName =
+          players.find((p) => p.id === data.winnerId)?.name || data.winnerId
+        addLog(`Game Over! Winner: ${winnerName}`)
+      } else {
+        addLog("Game Over!")
+      }
     } else if (
       data.type === ServerMessageType.CHAT_MESSAGE &&
       data.senderName &&
