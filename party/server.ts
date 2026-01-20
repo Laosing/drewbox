@@ -90,7 +90,6 @@ export default class Server implements Party.Server {
     // Heartbeat & Inactivity Check
     this.keepAliveInterval = setInterval(() => {
       this.checkInactivity()
-      this.reportToLobby()
     }, 10000)
   }
 
@@ -314,7 +313,7 @@ export default class Server implements Party.Server {
     if (this.gameState === GameState.PLAYING) {
       if (connectionId === this.activePlayerId) {
         // If the active player left, immediately pass turn to next
-        this.nextTurn(false, forceNextId)
+        this.nextTurn(false, forceNextId, false)
       }
     } else if (this.players.size === 0) {
       // Cleanup if empty
@@ -639,11 +638,15 @@ export default class Server implements Party.Server {
 
     this.checkWinCondition()
     if (this.gameState === GameState.PLAYING) {
-      this.nextTurn()
+      this.nextTurn(false, undefined, false)
     }
   }
 
-  nextTurn(isFirst: boolean = false, overridePlayerId?: string) {
+  nextTurn(
+    isFirst: boolean = false,
+    overridePlayerId?: string | null,
+    incrementSyllableCount: boolean = true,
+  ) {
     if (this.gameState !== GameState.PLAYING) return
 
     const playerIds = Array.from(this.players.values())
@@ -669,11 +672,28 @@ export default class Server implements Party.Server {
       this.activePlayerId = playerIds[0]
     }
 
-    // Async generation?
-    // getRandomSyllable is synchronous in interface but we might want to ensure loading?
-    // For now, it returns "ING" if not loaded.
-    this.syllableTurnCount++
-    if (isFirst || this.syllableTurnCount >= this.syllableChangeThreshold) {
+    let changeSyllable = isFirst
+
+    if (incrementSyllableCount) {
+      // Valid word submitted -> Always change syllable and reset fail count
+      changeSyllable = true
+    } else {
+      // Failed turn (Timer/Explosion) -> Increment fail count
+      this.syllableTurnCount++
+      if (this.syllableTurnCount >= this.syllableChangeThreshold) {
+        changeSyllable = true
+      }
+    }
+
+    if (changeSyllable) {
+      if (!this.dictionaryReady) {
+        this.broadcast({
+          type: ServerMessageType.ERROR,
+          message: "Dictionary not loaded!",
+        })
+        this.endGame()
+        return
+      }
       this.currentSyllable = this.dictionary.getRandomSyllable(50)
       this.syllableTurnCount = 0
     }

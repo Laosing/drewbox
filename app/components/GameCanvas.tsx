@@ -396,7 +396,9 @@ function GameCanvasInner({
         </div>
         <div className="form-control w-full max-w-xs mb-6">
           <label className="label">
-            <span className="label-text">Change syllable after X turns</span>
+            <span className="label-text">
+              Change syllable after number of tries
+            </span>
           </label>
           <input
             type="number"
@@ -482,7 +484,7 @@ function GameCanvasInner({
                 Timer: {maxTimer}s
               </div>
               <div className="badge badge-lg badge-neutral gap-2">
-                Change syllable after: {syllableChangeThreshold} turns
+                Change syllable after: {syllableChangeThreshold} tries
               </div>
             </div>
 

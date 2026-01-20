@@ -106,7 +106,7 @@ export class DictionaryManager {
   }
 
   getRandomSyllable(minWords: number = 50): string {
-    if (!this.db) return "ING"
+    if (!this.db) throw new Error("Dictionary not loaded")
 
     let attempts = 0
     while (attempts < 20) {
@@ -142,10 +142,10 @@ export class DictionaryManager {
         attempts++
       } catch (err) {
         logger.error("Random syllable generation error", err)
-        break
+        throw new Error("Failed to generate syllable from DB")
       }
     }
 
-    return "EST"
+    throw new Error("Failed to generate valid syllable after 20 attempts")
   }
 }
