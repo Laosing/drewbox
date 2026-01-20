@@ -5,6 +5,7 @@ type RoomInfo = {
   id: string
   players: number
   isPrivate: boolean
+  mode?: string
   lastUpdated: number
 }
 
@@ -20,7 +21,7 @@ export default class LobbyServer implements Party.Server {
     await this.cleanupStaleRooms()
   }
 
-  async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+  async onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
     // Send current room list to new connector
     const rooms = await this.getRooms()
     conn.send(JSON.stringify({ type: ServerMessageType.ROOM_LIST, rooms }))
@@ -32,6 +33,7 @@ export default class LobbyServer implements Party.Server {
         id: string
         players: number
         isPrivate: boolean
+        mode?: string
       }
 
       // Update storage
@@ -42,6 +44,7 @@ export default class LobbyServer implements Party.Server {
           id: body.id,
           players: body.players,
           isPrivate: body.isPrivate || false,
+          mode: body.mode,
           lastUpdated: Date.now(),
         }
         await this.lobby.storage.put(`room:${body.id}`, room)

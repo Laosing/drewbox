@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import PartySocket from "partysocket"
 import {
-  ClientMessageType,
+  WordleClientMessageType,
   GameState,
   type Player,
   ServerMessageType,
@@ -93,7 +93,10 @@ export default function WordleView({
     e.preventDefault()
     if (!input) return
     socket.send(
-      JSON.stringify({ type: ClientMessageType.SUBMIT_WORD, word: input }),
+      JSON.stringify({
+        type: WordleClientMessageType.SUBMIT_WORD,
+        word: input,
+      }),
     )
     setInput("")
   }
@@ -107,7 +110,7 @@ export default function WordleView({
     setInput(cleaned)
     socket.send(
       JSON.stringify({
-        type: ClientMessageType.UPDATE_TYPING,
+        type: WordleClientMessageType.UPDATE_TYPING,
         text: cleaned,
       }),
     )
@@ -191,7 +194,9 @@ export default function WordleView({
               <button
                 onClick={() =>
                   socket.send(
-                    JSON.stringify({ type: ClientMessageType.START_GAME }),
+                    JSON.stringify({
+                      type: WordleClientMessageType.START_GAME,
+                    }),
                   )
                 }
                 disabled={players.length < 1 || !dictionaryLoaded}
@@ -241,7 +246,12 @@ export default function WordleView({
             </div>
 
             {/* Game Grid */}
-            <div className="flex flex-col gap-2 mb-4">
+            <div
+              className="flex flex-col gap-2 mb-4 cursor-text"
+              onClick={() => {
+                if (isMyTurn) inputRef.current?.focus()
+              }}
+            >
               {/* Previous Guesses */}
               {visibleGuesses.map((g: Guess, i: number) => (
                 <div key={i} className="flex gap-2">
@@ -369,7 +379,7 @@ export default function WordleView({
               <button
                 onClick={() =>
                   socket.send(
-                    JSON.stringify({ type: ClientMessageType.STOP_GAME }),
+                    JSON.stringify({ type: WordleClientMessageType.STOP_GAME }),
                   )
                 }
                 className="btn btn-ghost btn-xs text-error mt-4"

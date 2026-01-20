@@ -2,7 +2,9 @@ import clsx from "clsx"
 import usePartySocket from "partysocket/react"
 import { useEffect, useRef, useState } from "react"
 import {
-  ClientMessageType,
+  GlobalClientMessageType,
+  WordleClientMessageType,
+  BombPartyClientMessageType,
   GameMode,
   GameState,
   ServerMessageType,
@@ -11,6 +13,7 @@ import type { Player } from "../../shared/types"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
 import { Logo } from "./Logo"
 import { Modal } from "./Modal"
+import StatusCard from "./StatusCard"
 import BombPartyView from "./games/BombPartyView"
 import BombPartySettings from "./games/BombPartySettings"
 import WordleView from "./games/WordleView"
@@ -62,13 +65,54 @@ function GameCanvasInner({
 
   const saveSettings = () => {
     // Commit changes
-    socket.send(
-      JSON.stringify({
-        type: ClientMessageType.UPDATE_SETTINGS,
-        ...pendingSettings,
-      }),
-    )
+    // We now send EVERYTHING to the game-specific handler
+
+    // Extract only the allowed settings fields to prevent sending 'type' or heavy state
+    const {
+      type, // Remove 'type' from spread
+      gameState, // Remove server state props
+      players,
+      guesses,
+      ...rawSettings
+    } = pendingSettings
+
+    // Further sanitize to only include modifiable settings
+    const validSettings: any = {}
+    if (rawSettings.chatEnabled !== undefined)
+      validSettings.chatEnabled = rawSettings.chatEnabled
+    if (rawSettings.gameLogEnabled !== undefined)
+      validSettings.gameLogEnabled = rawSettings.gameLogEnabled
+    if (rawSettings.maxTimer !== undefined)
+      validSettings.maxTimer = rawSettings.maxTimer
+    if (rawSettings.maxAttempts !== undefined)
+      validSettings.maxAttempts = rawSettings.maxAttempts
+    if (rawSettings.startingLives !== undefined)
+      validSettings.startingLives = rawSettings.startingLives
+    if (rawSettings.syllableChangeThreshold !== undefined)
+      validSettings.syllableChangeThreshold =
+        rawSettings.syllableChangeThreshold
+
+    // Ensure we have something to send
+    if (Object.keys(validSettings).length > 0) {
+      if (gameMode === GameMode.WORDLE) {
+        socket.send(
+          JSON.stringify({
+            ...validSettings,
+            type: WordleClientMessageType.UPDATE_SETTINGS, // Ensure this overrides any spread
+          }),
+        )
+      } else if (gameMode === GameMode.BOMB_PARTY) {
+        socket.send(
+          JSON.stringify({
+            ...validSettings,
+            type: BombPartyClientMessageType.UPDATE_SETTINGS,
+          }),
+        )
+      }
+    }
+
     ;(document.getElementById("settings_modal") as HTMLDialogElement)?.close()
+    setPendingSettings({})
   }
 
   // Persistent name state (committed)
@@ -218,7 +262,7 @@ function GameCanvasInner({
   const handleKick = (playerId: string) => {
     if (!confirm("Are you sure you want to kick this player?")) return
     socket.send(
-      JSON.stringify({ type: ClientMessageType.KICK_PLAYER, playerId }),
+      JSON.stringify({ type: GlobalClientMessageType.KICK_PLAYER, playerId }),
     )
   }
 
@@ -229,7 +273,10 @@ function GameCanvasInner({
     e.preventDefault()
     if (!chatInput.trim()) return
     socket.send(
-      JSON.stringify({ type: ClientMessageType.CHAT_MESSAGE, text: chatInput }),
+      JSON.stringify({
+        type: GlobalClientMessageType.CHAT_MESSAGE,
+        text: chatInput,
+      }),
     )
     setChatInput("")
 
@@ -243,7 +290,10 @@ function GameCanvasInner({
     setMyName(trimmedName) // Commit the new name
     localStorage.setItem("booombparty_username", trimmedName)
     socket.send(
-      JSON.stringify({ type: ClientMessageType.SET_NAME, name: trimmedName }),
+      JSON.stringify({
+        type: GlobalClientMessageType.SET_NAME,
+        name: trimmedName,
+      }),
     )
     setIsNameDisabled(true)
     setTimeout(() => setIsNameDisabled(false), 5000)
@@ -303,35 +353,6 @@ function GameCanvasInner({
           </>
         }
       >
-        <div className="form-control w-full max-w-xs mb-6 px-1">
-          <label className="label cursor-pointer justify-start gap-4">
-            <span className="label-text font-bold">Enable Chat</span>
-
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={pendingSettings.chatEnabled ?? chatEnabled}
-              onChange={(e) =>
-                handleSettingsUpdate({ chatEnabled: e.target.checked })
-              }
-            />
-          </label>
-        </div>
-
-        <div className="form-control w-full max-w-xs mb-6 px-1">
-          <label className="label cursor-pointer justify-start gap-4">
-            <span className="label-text font-bold">Enable Game Log</span>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={pendingSettings.gameLogEnabled ?? gameLogEnabled}
-              onChange={(e) =>
-                handleSettingsUpdate({ gameLogEnabled: e.target.checked })
-              }
-            />
-          </label>
-        </div>
-
         {/* Game Specific Settings */}
         {gameMode === GameMode.BOMB_PARTY && (
           <BombPartySettings
@@ -344,6 +365,8 @@ function GameCanvasInner({
               serverState.syllableChangeThreshold ??
               2
             }
+            chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
+            gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
             onUpdate={handleSettingsUpdate}
           />
         )}
@@ -353,6 +376,8 @@ function GameCanvasInner({
             maxAttempts={
               pendingSettings.maxAttempts ?? serverState.maxAttempts ?? 5
             }
+            chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
+            gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
             onUpdate={handleSettingsUpdate}
           />
         )}
@@ -372,11 +397,7 @@ function GameCanvasInner({
               document.getElementById("name_modal") as HTMLDialogElement
             )?.showModal()
           }
-          onOpenSettings={() =>
-            (
-              document.getElementById("settings_modal") as HTMLDialogElement
-            )?.showModal()
-          }
+          onOpenSettings={openSettings}
           room={room}
           password={password}
         />
@@ -574,68 +595,69 @@ export default function GameCanvas({ room }: { room: string }) {
 
   if (needsPassword && !connectionPassword) {
     return (
-      <div className="container mx-auto p-4 flex flex-col gap-6 max-w-md mt-10">
-        <div className="card bg-base-100 shadow-xl p-6 text-center border border-base-300">
-          <Logo name={room} random={false} />
-          <p className="mt-4 mb-2">This room is private.</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (passwordInput) setConnectionPassword(passwordInput)
-            }}
-            className="flex flex-col gap-2"
-          >
-            <input
-              type="password"
-              placeholder="Enter Password"
-              className="input input-bordered w-full text-center"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              autoFocus
-            />
-            <button type="submit" className="btn btn-primary w-full">
-              Join Room
-            </button>
-          </form>
+      <StatusCard
+        icon={<Logo name={room} random={false} />}
+        title="This room is private."
+        actions={
           <a href="/" className="btn btn-ghost btn-sm mt-4">
             Back to Lobby
           </a>
-        </div>
-      </div>
+        }
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (passwordInput) setConnectionPassword(passwordInput)
+          }}
+          className="flex flex-col gap-2"
+        >
+          <input
+            type="password"
+            placeholder="Enter Password"
+            className="input input-bordered w-full text-center"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" className="btn btn-primary w-full">
+            Join Room
+          </button>
+        </form>
+      </StatusCard>
     )
   }
 
   if (!/^[a-z]{4}$/.test(room)) {
     return (
-      <div className="container mx-auto p-4 flex flex-col gap-6 max-w-md mt-10">
-        <div className="card bg-base-100 shadow-xl p-6 text-center border border-base-300">
-          <div className="text-4xl mb-4">🚫</div>
-          <h2 className="text-xl font-bold mb-2">Invalid Room ID</h2>
-          <p className="opacity-70 mb-4">
-            Room codes must be exactly 4 letters (a-z).
-          </p>
+      <StatusCard
+        icon="🚫"
+        title="Invalid Room ID"
+        actions={
           <a href="/" className="btn btn-primary">
             Back to Lobby
           </a>
-        </div>
-      </div>
+        }
+      >
+        <p>Room codes must be exactly 4 letters (a-z).</p>
+      </StatusCard>
     )
   }
 
   if (!initialMode) {
     return (
-      <div className="container mx-auto p-4 flex flex-col gap-6 max-w-md mt-10">
-        <div className="card bg-base-100 shadow-xl p-6 text-center border border-base-300">
-          <div className="text-4xl mb-4">❓</div>
-          <h2 className="text-xl font-bold mb-2">Game Mode Required</h2>
-          <p className="opacity-70 mb-4">
-            You are trying to create a new room without specifying a game mode.
-          </p>
+      <StatusCard
+        icon="❓"
+        title="Game Mode Required"
+        actions={
           <a href="/" className="btn btn-primary">
             Back to Lobby
           </a>
-        </div>
-      </div>
+        }
+      >
+        <p>
+          You are trying to create a new room without specifying a game mode.
+        </p>
+      </StatusCard>
     )
   }
 

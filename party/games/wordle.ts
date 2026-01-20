@@ -1,13 +1,101 @@
 import { BaseGame } from "../game-engine"
 import {
-  ClientMessageType,
+  WordleClientMessageType,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
 import type * as Party from "partykit/server"
-import type { ClientMessage, Guess, GuessResult } from "../../shared/types"
+import type {
+  WordleClientMessage,
+  Guess,
+  GuessResult,
+} from "../../shared/types" // Updated type import
 
 export class WordleGame extends BaseGame {
+  // ... (keeping class props same)
+
+  // ...
+
+  onMessage(message: string, sender: Party.Connection): void {
+    try {
+      const data = JSON.parse(message) as WordleClientMessage // Cast to specific type
+      switch (data.type) {
+        case WordleClientMessageType.START_GAME:
+          if (
+            this.players.get(sender.id)?.isAdmin &&
+            this.server.gameState === GameState.LOBBY
+          ) {
+            this.onStart()
+          }
+          break
+        case WordleClientMessageType.STOP_GAME:
+          if (
+            this.players.get(sender.id)?.isAdmin &&
+            this.server.gameState === GameState.PLAYING
+          ) {
+            this.endGame()
+          }
+          break
+        case WordleClientMessageType.SUBMIT_WORD:
+          if (
+            this.server.gameState === GameState.PLAYING &&
+            this.activePlayerId === sender.id
+          ) {
+            this.handleGuess(sender.id, data.word)
+          }
+          break
+        case WordleClientMessageType.UPDATE_TYPING:
+          if (
+            this.server.gameState === GameState.PLAYING &&
+            this.activePlayerId === sender.id
+          ) {
+            this.broadcast({
+              type: ServerMessageType.TYPING_UPDATE,
+              text: data.text,
+            })
+          }
+          break
+        case WordleClientMessageType.UPDATE_SETTINGS:
+          console.log(
+            "WordleGame: Processing UPDATE_SETTINGS",
+            JSON.stringify(data),
+          )
+          if (this.players.get(sender.id)?.isAdmin) {
+            if (data.maxTimer) {
+              this.maxTimer = Math.max(5, Math.min(30, Number(data.maxTimer)))
+            }
+            if (data.maxAttempts) {
+              this.maxAttempts = Math.max(
+                1,
+                Math.min(10, Number(data.maxAttempts)),
+              )
+            }
+            if (data.chatEnabled !== undefined) {
+              this.chatEnabled = Boolean(data.chatEnabled)
+            }
+            if (data.gameLogEnabled !== undefined) {
+              this.gameLogEnabled = Boolean(data.gameLogEnabled)
+            }
+
+            console.log("WordleGame: Updated State", {
+              chat: this.chatEnabled,
+              log: this.gameLogEnabled,
+              timer: this.maxTimer,
+            })
+
+            this.server.broadcastState()
+          } else {
+            console.log("WordleGame: UPDATE_SETTINGS rejected (Not Admin)")
+          }
+          break
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // ... (keep props)
+
   targetWord: string = ""
   guesses: Guess[] = []
 
@@ -90,12 +178,31 @@ export class WordleGame extends BaseGame {
   }
 
   handleTimeout() {
-    // Pass turn
+    // Record a failed attempt due to timeout
+    const results: GuessResult[] = [
+      "absent",
+      "absent",
+      "absent",
+      "absent",
+      "absent",
+    ]
+    this.guesses.push({
+      playerId: this.activePlayerId || "server",
+      word: "?????",
+      results,
+      timestamp: Date.now(),
+    })
+
     this.broadcast({
       type: ServerMessageType.SYSTEM_MESSAGE,
-      message: "Time's up! Next player.",
+      message: "Time's up! Attempt lost.",
     })
-    this.nextTurn()
+
+    if (this.guesses.length >= this.maxAttempts) {
+      this.endGame(null)
+    } else {
+      this.nextTurn()
+    }
   }
 
   nextTurn(isFirst: boolean = false) {
@@ -120,75 +227,6 @@ export class WordleGame extends BaseGame {
     this.timer = this.maxTimer
     this.turnStartTime = Date.now()
     this.server.broadcastState()
-  }
-
-  onMessage(message: string, sender: Party.Connection): void {
-    try {
-      const data = JSON.parse(message) as ClientMessage
-      switch (data.type) {
-        case ClientMessageType.START_GAME:
-          if (
-            this.players.get(sender.id)?.isAdmin &&
-            this.server.gameState === GameState.LOBBY
-          ) {
-            this.onStart()
-          }
-          break
-        case ClientMessageType.STOP_GAME:
-          if (
-            this.players.get(sender.id)?.isAdmin &&
-            this.server.gameState === GameState.PLAYING
-          ) {
-            this.endGame()
-          }
-          break
-        case ClientMessageType.SUBMIT_WORD:
-          if (
-            this.server.gameState === GameState.PLAYING &&
-            this.activePlayerId === sender.id
-          ) {
-            this.handleGuess(sender.id, data.word)
-          }
-          break
-        case ClientMessageType.UPDATE_TYPING:
-          if (
-            this.server.gameState === GameState.PLAYING &&
-            this.activePlayerId === sender.id
-          ) {
-            this.broadcast({
-              type: ServerMessageType.TYPING_UPDATE,
-              text: data.text,
-            })
-          }
-          break
-        case ClientMessageType.UPDATE_SETTINGS:
-          if (
-            this.players.get(sender.id)?.isAdmin &&
-            this.server.gameState === GameState.LOBBY
-          ) {
-            if (data.chatEnabled !== undefined) {
-              this.server.chatEnabled = data.chatEnabled
-            }
-            if (data.gameLogEnabled !== undefined) {
-              this.server.gameLogEnabled = data.gameLogEnabled
-            }
-
-            // Can update maxTimer
-            if (data.maxTimer) {
-              const val = Math.max(5, Math.min(30, data.maxTimer))
-              this.maxTimer = val
-            }
-            if (data.maxAttempts) {
-              const val = Math.max(1, Math.min(10, data.maxAttempts))
-              this.maxAttempts = val
-            }
-            this.server.broadcastState()
-          }
-          break
-      }
-    } catch (e) {
-      console.error(e)
-    }
   }
 
   handleGuess(playerId: string, word: string) {
@@ -279,6 +317,8 @@ export class WordleGame extends BaseGame {
       timer: this.timer,
       maxTimer: this.maxTimer,
       maxAttempts: this.maxAttempts,
+      chatEnabled: this.chatEnabled,
+      gameLogEnabled: this.gameLogEnabled,
     }
   }
 }

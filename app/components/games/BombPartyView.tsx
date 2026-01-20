@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import PartySocket from "partysocket"
 import {
-  ClientMessageType,
+  BombPartyClientMessageType,
   GameState,
   type Player,
   ServerMessageType,
@@ -120,7 +120,10 @@ export default function BombPartyView({
     e.preventDefault()
     if (!input) return
     socket.send(
-      JSON.stringify({ type: ClientMessageType.SUBMIT_WORD, word: input }),
+      JSON.stringify({
+        type: BombPartyClientMessageType.SUBMIT_WORD,
+        word: input,
+      }),
     )
     setInput("")
   }
@@ -129,7 +132,7 @@ export default function BombPartyView({
     setInput(val)
     socket.send(
       JSON.stringify({
-        type: ClientMessageType.UPDATE_TYPING,
+        type: BombPartyClientMessageType.UPDATE_TYPING,
         text: val,
       }),
     )
@@ -196,7 +199,9 @@ export default function BombPartyView({
               <button
                 onClick={() =>
                   socket.send(
-                    JSON.stringify({ type: ClientMessageType.START_GAME }),
+                    JSON.stringify({
+                      type: BombPartyClientMessageType.START_GAME,
+                    }),
                   )
                 }
                 disabled={players.length < 1 || !dictionaryLoaded}
@@ -275,7 +280,9 @@ export default function BombPartyView({
               <button
                 onClick={() =>
                   socket.send(
-                    JSON.stringify({ type: ClientMessageType.STOP_GAME }),
+                    JSON.stringify({
+                      type: BombPartyClientMessageType.STOP_GAME,
+                    }),
                   )
                 }
                 className="btn btn-warning btn-sm block m-auto"

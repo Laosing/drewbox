@@ -34,17 +34,6 @@ export type Player = {
   lastTurn?: { word: string; syllable: string }
 }
 
-export enum ClientMessageType {
-  START_GAME = "START_GAME",
-  STOP_GAME = "STOP_GAME",
-  SUBMIT_WORD = "SUBMIT_WORD",
-  UPDATE_TYPING = "UPDATE_TYPING",
-  SET_NAME = "SET_NAME",
-  CHAT_MESSAGE = "CHAT_MESSAGE",
-  UPDATE_SETTINGS = "UPDATE_SETTINGS",
-  KICK_PLAYER = "KICK_PLAYER",
-}
-
 export enum GameMode {
   BOMB_PARTY = "BOMB_PARTY",
   WORDLE = "WORDLE",
@@ -56,20 +45,66 @@ export enum GameState {
   ENDED = "ENDED",
 }
 
-export type ClientMessage =
-  | { type: ClientMessageType.START_GAME }
-  | { type: ClientMessageType.STOP_GAME }
-  | { type: ClientMessageType.SUBMIT_WORD; word: string }
-  | { type: ClientMessageType.UPDATE_TYPING; text: string }
-  | { type: ClientMessageType.SET_NAME; name: string }
-  | { type: ClientMessageType.CHAT_MESSAGE; text: string }
+export enum GlobalClientMessageType {
+  SET_NAME = "SET_NAME",
+  CHAT_MESSAGE = "CHAT_MESSAGE",
+  KICK_PLAYER = "KICK_PLAYER",
+  UPDATE_SETTINGS = "UPDATE_SETTINGS", // Global settings (chat, log)
+}
+
+export enum WordleClientMessageType {
+  START_GAME = "WORDLE_START_GAME",
+  STOP_GAME = "WORDLE_STOP_GAME",
+  SUBMIT_WORD = "WORDLE_SUBMIT_WORD",
+  UPDATE_TYPING = "WORDLE_UPDATE_TYPING",
+  UPDATE_SETTINGS = "WORDLE_UPDATE_SETTINGS",
+}
+
+export enum BombPartyClientMessageType {
+  START_GAME = "BP_START_GAME",
+  STOP_GAME = "BP_STOP_GAME",
+  SUBMIT_WORD = "BP_SUBMIT_WORD",
+  UPDATE_TYPING = "BP_UPDATE_TYPING",
+  UPDATE_SETTINGS = "BP_UPDATE_SETTINGS",
+}
+
+export type GlobalClientMessage =
+  | { type: GlobalClientMessageType.SET_NAME; name: string }
+  | { type: GlobalClientMessageType.CHAT_MESSAGE; text: string }
+  | { type: GlobalClientMessageType.KICK_PLAYER; playerId: string }
   | {
-      type: ClientMessageType.UPDATE_SETTINGS
-      startingLives?: number
+      type: GlobalClientMessageType.UPDATE_SETTINGS
+      // Removed global chat/log
+    }
+
+export type WordleClientMessage =
+  | { type: WordleClientMessageType.START_GAME }
+  | { type: WordleClientMessageType.STOP_GAME }
+  | { type: WordleClientMessageType.SUBMIT_WORD; word: string }
+  | { type: WordleClientMessageType.UPDATE_TYPING; text: string }
+  | {
+      type: WordleClientMessageType.UPDATE_SETTINGS
       maxTimer?: number
+      maxAttempts?: number
       chatEnabled?: boolean
       gameLogEnabled?: boolean
-      syllableChangeThreshold?: number
-      [key: string]: any
     }
-  | { type: ClientMessageType.KICK_PLAYER; playerId: string }
+
+export type BombPartyClientMessage =
+  | { type: BombPartyClientMessageType.START_GAME }
+  | { type: BombPartyClientMessageType.STOP_GAME }
+  | { type: BombPartyClientMessageType.SUBMIT_WORD; word: string }
+  | { type: BombPartyClientMessageType.UPDATE_TYPING; text: string }
+  | {
+      type: BombPartyClientMessageType.UPDATE_SETTINGS
+      startingLives?: number
+      maxTimer?: number
+      syllableChangeThreshold?: number
+      chatEnabled?: boolean
+      gameLogEnabled?: boolean
+    }
+
+export type ClientMessage =
+  | GlobalClientMessage
+  | WordleClientMessage
+  | BombPartyClientMessage

@@ -2,6 +2,8 @@ interface BombPartySettingsProps {
   startingLives: number
   maxTimer: number
   syllableChangeThreshold: number
+  chatEnabled?: boolean
+  gameLogEnabled?: boolean
   onUpdate: (settings: any) => void
 }
 
@@ -9,10 +11,36 @@ export default function BombPartySettings({
   startingLives,
   maxTimer,
   syllableChangeThreshold,
+  chatEnabled,
+  gameLogEnabled,
   onUpdate,
 }: BombPartySettingsProps) {
   return (
     <>
+      <div className="form-control w-full max-w-xs mb-6 px-1">
+        <label className="label cursor-pointer justify-start gap-4">
+          <span className="label-text font-bold">Enable Chat</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-primary"
+            checked={!!chatEnabled}
+            onChange={(e) => onUpdate({ chatEnabled: e.target.checked })}
+          />
+        </label>
+      </div>
+
+      <div className="form-control w-full max-w-xs mb-6 px-1">
+        <label className="label cursor-pointer justify-start gap-4">
+          <span className="label-text font-bold">Enable Game Log</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-primary"
+            checked={!!gameLogEnabled}
+            onChange={(e) => onUpdate({ gameLogEnabled: e.target.checked })}
+          />
+        </label>
+      </div>
+
       <div className="form-control w-full max-w-xs mb-6">
         <label className="label">
           <span className="label-text">Starting Lives</span>

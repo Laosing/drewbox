@@ -2,7 +2,7 @@ import type * as Party from "partykit/server"
 import { createLogger, Logger } from "../shared/logger"
 import { DictionaryManager } from "./dictionary"
 import {
-  ClientMessageType,
+  GlobalClientMessageType,
   GameState,
   ServerMessageType,
   GameMode,
@@ -28,10 +28,11 @@ export default class Server implements Party.Server {
   activeGame: GameEngine | null = null
   gameMode: GameMode = GameMode.BOMB_PARTY
 
+  // Fallback global settings (games manage their own now)
   chatEnabled: boolean = true
   gameLogEnabled: boolean = true
 
-  // Dictionary State (Global for now, managed by server)
+  // Dictionary State
   dictionaryReady: boolean = false
 
   // Rate limiting (simple window)
@@ -168,24 +169,26 @@ export default class Server implements Party.Server {
 
     // Initialize Game Mode
     if (!this.activeGame) {
-      let storedMode = (await this.room.storage.get("gameMode")) as GameMode
+      const storedMode = (await this.room.storage.get("gameMode")) as GameMode
       const paramMode = url.searchParams.get("mode") as GameMode
 
       this.logger.info(
         `Checking GameMode. Stored: ${storedMode}, Param: ${paramMode}`,
       )
 
-      if (
-        !storedMode &&
-        paramMode &&
-        Object.values(GameMode).includes(paramMode)
-      ) {
-        storedMode = paramMode
-        await this.room.storage.put("gameMode", storedMode)
-        this.logger.info(`Set new GameMode: ${storedMode}`)
+      if (storedMode) {
+        this.gameMode = storedMode
+      } else {
+        // Fallback to param or default
+        const validParam =
+          paramMode && Object.values(GameMode).includes(paramMode)
+        this.gameMode = validParam ? paramMode : GameMode.BOMB_PARTY
+
+        // Persist the decision so this room is forever marked with this mode
+        await this.room.storage.put("gameMode", this.gameMode)
+        this.logger.info(`Initialized and Saved GameMode: ${this.gameMode}`)
       }
 
-      this.gameMode = storedMode || GameMode.BOMB_PARTY
       this.logger.info(`Active GameMode: ${this.gameMode}`)
 
       // Instantiate correct game
@@ -270,11 +273,11 @@ export default class Server implements Party.Server {
     this.reportToLobby()
   }
 
-  onClose(conn: Party.Connection) {
-    this.removePlayer(conn.id)
+  async onClose(conn: Party.Connection) {
+    await this.removePlayer(conn.id)
   }
 
-  removePlayer(connectionId: string) {
+  async removePlayer(connectionId: string) {
     const p = this.players.get(connectionId)
     if (!p) return
 
@@ -300,10 +303,14 @@ export default class Server implements Party.Server {
 
     if (this.players.size === 0) {
       this.activeGame?.dispose()
+      this.activeGame = null
+      this.password = undefined // Reset password
+      await this.room.storage.deleteAll()
+      this.logger.info("Room empty. Storage and state cleared.")
     }
 
     this.broadcastState()
-    this.reportToLobby()
+    await this.reportToLobby()
   }
 
   async onRequest(req: Party.Request) {
@@ -360,7 +367,7 @@ export default class Server implements Party.Server {
     }
   }
 
-  onMessage(message: string, sender: Party.Connection) {
+  async onMessage(message: string, sender: Party.Connection) {
     this.lastActivity = Date.now()
 
     // 1. Rate Limiting
@@ -373,11 +380,16 @@ export default class Server implements Party.Server {
 
     try {
       const data = JSON.parse(message) as ClientMessage
+      console.log(
+        "Server: Received message",
+        data.type,
+        JSON.stringify(data).substring(0, 100),
+      )
       const senderPlayer = this.players.get(sender.id)
 
       // GLOBAL HANDLERS
       switch (data.type) {
-        case ClientMessageType.KICK_PLAYER:
+        case GlobalClientMessageType.KICK_PLAYER:
           if (senderPlayer?.isAdmin && typeof data.playerId === "string") {
             if (data.playerId === sender.id) return
 
@@ -402,13 +414,13 @@ export default class Server implements Party.Server {
                 this.blockedIPs.add(clientId)
               }
 
-              this.removePlayer(data.playerId)
+              await this.removePlayer(data.playerId)
               targetConn.close(4002, "Kicked by Admin")
             }
           }
           return
 
-        case ClientMessageType.SET_NAME:
+        case GlobalClientMessageType.SET_NAME:
           {
             const limits = this.rateLimits.get(sender.id) || {
               lastChat: 0,
@@ -432,9 +444,10 @@ export default class Server implements Party.Server {
           }
           return
 
-        case ClientMessageType.CHAT_MESSAGE:
+        case GlobalClientMessageType.CHAT_MESSAGE:
           if (typeof data.text === "string") {
-            if (!this.chatEnabled) return
+            // Check Game Setting instead
+            if (this.activeGame && !this.activeGame.chatEnabled) return
 
             const limits = this.rateLimits.get(sender.id) || {
               lastChat: 0,
@@ -460,6 +473,10 @@ export default class Server implements Party.Server {
             }
           }
           return
+
+        case GlobalClientMessageType.UPDATE_SETTINGS:
+          // Global settings removed for now, ignored
+          return
       }
 
       // If not global, delegate to game
@@ -471,8 +488,11 @@ export default class Server implements Party.Server {
 
   // Helpers exposed for GameEngine
   broadcast(data: any) {
-    if (data.type === ServerMessageType.GAME_OVER && !this.gameLogEnabled) {
-      // If we want to suppress certain messages
+    if (data.type === ServerMessageType.GAME_OVER) {
+      if (this.activeGame && !this.activeGame.gameLogEnabled) {
+        // suppress
+        // (Currently allows message but client might filter)
+      }
     }
     this.room.broadcast(JSON.stringify(data))
   }
@@ -490,11 +510,9 @@ export default class Server implements Party.Server {
         type: ServerMessageType.STATE_UPDATE,
         gameState: this.gameState,
         players: Array.from(this.players.values()),
-        chatEnabled: this.chatEnabled,
-        gameLogEnabled: this.gameLogEnabled,
         dictionaryLoaded: this.dictionaryReady,
         gameMode: this.gameMode,
-        ...this.activeGame?.getState(), // Merge game specific state
+        ...this.activeGame?.getState(),
       }),
     )
   }

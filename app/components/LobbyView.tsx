@@ -5,7 +5,7 @@ import { ServerMessageType, GameMode } from "../../shared/types"
 
 export default function LobbyView() {
   const [availableRooms, setAvailableRooms] = useState<
-    { id: string; players: number; isPrivate?: boolean }[]
+    { id: string; players: number; isPrivate?: boolean; mode?: GameMode }[]
   >([])
   const [newRoomName, setNewRoomName] = useState("")
   const [roomPassword, setRoomPassword] = useState("")
@@ -151,9 +151,9 @@ export default function LobbyView() {
                 onClick={() => {
                   if (r.isPrivate) {
                     const p = prompt("Enter password for " + r.id)
-                    if (p) joinRoom(r.id, p)
+                    if (p) joinRoom(r.id, p, r.mode)
                   } else {
-                    joinRoom(r.id)
+                    joinRoom(r.id, undefined, r.mode)
                   }
                 }}
                 className="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer p-4 flex flex-row justify-between items-center"

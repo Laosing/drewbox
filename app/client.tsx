@@ -6,7 +6,6 @@ import ThemeController from "./components/ThemeController"
 
 import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
-import GridLayout from "react-grid-layout"
 
 import { useState } from "react"
 // ... imports
@@ -78,12 +77,6 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState("dark")
   const params = new URLSearchParams(window.location.search)
   const room = params.get("room")
-
-  const layout = [
-    { i: "a", x: 0, y: 0, w: 1, h: 2 },
-    { i: "b", x: 1, y: 0, w: 3, h: 2 },
-    { i: "c", x: 4, y: 0, w: 1, h: 2 },
-  ]
 
   return (
     <main className="relative px-6 pt-14 lg:px-8">

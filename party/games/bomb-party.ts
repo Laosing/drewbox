@@ -1,13 +1,14 @@
 import { BaseGame } from "../game-engine"
 import {
-  ClientMessageType,
+  BombPartyClientMessageType,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
-import type { ClientMessage } from "../../shared/types"
+import type { BombPartyClientMessage } from "../../shared/types"
 import type * as Party from "partykit/server"
 
 export class BombPartyGame extends BaseGame {
+  // ... (keep props)
   // Game State
   currentSyllable: string = ""
   usedWords: Set<string> = new Set()
@@ -207,11 +208,11 @@ export class BombPartyGame extends BaseGame {
 
   onMessage(message: string, sender: Party.Connection): void {
     try {
-      const data = JSON.parse(message) as ClientMessage
+      const data = JSON.parse(message) as BombPartyClientMessage
       const senderPlayer = this.players.get(sender.id)
 
       switch (data.type) {
-        case ClientMessageType.START_GAME:
+        case BombPartyClientMessageType.START_GAME:
           if (
             senderPlayer?.isAdmin &&
             this.server.gameState === GameState.LOBBY &&
@@ -220,7 +221,7 @@ export class BombPartyGame extends BaseGame {
             this.onStart()
           }
           break
-        case ClientMessageType.STOP_GAME:
+        case BombPartyClientMessageType.STOP_GAME:
           if (
             senderPlayer?.isAdmin &&
             this.server.gameState === GameState.PLAYING
@@ -232,7 +233,7 @@ export class BombPartyGame extends BaseGame {
             this.endGame(null)
           }
           break
-        case ClientMessageType.SUBMIT_WORD:
+        case BombPartyClientMessageType.SUBMIT_WORD:
           if (
             this.server.gameState === GameState.PLAYING &&
             this.activePlayerId === sender.id &&
@@ -241,7 +242,7 @@ export class BombPartyGame extends BaseGame {
             this.handleWordSubmission(sender.id, data.word)
           }
           break
-        case ClientMessageType.UPDATE_TYPING:
+        case BombPartyClientMessageType.UPDATE_TYPING:
           if (
             this.server.gameState === GameState.PLAYING &&
             this.activePlayerId === sender.id &&
@@ -254,8 +255,10 @@ export class BombPartyGame extends BaseGame {
             })
           }
           break
-        case ClientMessageType.UPDATE_SETTINGS:
+        case BombPartyClientMessageType.UPDATE_SETTINGS:
           if (senderPlayer?.isAdmin) {
+            // Global settings are handled by Server now.
+
             if (typeof data.startingLives === "number") {
               let lives = Math.floor(data.startingLives)
               if (lives < 1) lives = 1
@@ -278,10 +281,10 @@ export class BombPartyGame extends BaseGame {
               )
             }
             if (data.chatEnabled !== undefined) {
-              this.server.chatEnabled = !!data.chatEnabled
+              this.chatEnabled = data.chatEnabled
             }
             if (data.gameLogEnabled !== undefined) {
-              this.server.gameLogEnabled = !!data.gameLogEnabled
+              this.gameLogEnabled = data.gameLogEnabled
             }
             this.server.broadcastState()
           }
@@ -356,6 +359,8 @@ export class BombPartyGame extends BaseGame {
       startingLives: this.startingLives,
       syllableChangeThreshold: this.syllableChangeThreshold,
       dictionaryLoaded: this.server.dictionaryReady,
+      chatEnabled: this.chatEnabled,
+      gameLogEnabled: this.gameLogEnabled,
     }
   }
 }
