@@ -1,6 +1,7 @@
 import { BaseGame } from "../game-engine"
 import {
   WordleClientMessageType,
+  WordleSettingsSchema,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
@@ -56,36 +57,21 @@ export class WordleGame extends BaseGame {
           }
           break
         case WordleClientMessageType.UPDATE_SETTINGS:
-          console.log(
-            "WordleGame: Processing UPDATE_SETTINGS",
-            JSON.stringify(data),
-          )
           if (this.players.get(sender.id)?.isAdmin) {
-            if (data.maxTimer) {
-              this.maxTimer = Math.max(5, Math.min(30, Number(data.maxTimer)))
-            }
-            if (data.maxAttempts) {
-              this.maxAttempts = Math.max(
-                1,
-                Math.min(10, Number(data.maxAttempts)),
-              )
-            }
-            if (data.chatEnabled !== undefined) {
-              this.chatEnabled = Boolean(data.chatEnabled)
-            }
-            if (data.gameLogEnabled !== undefined) {
-              this.gameLogEnabled = Boolean(data.gameLogEnabled)
-            }
+            const result = WordleSettingsSchema.safeParse(data)
+            if (result.success) {
+              const settings = result.data
+              if (settings.maxTimer !== undefined)
+                this.maxTimer = settings.maxTimer
+              if (settings.maxAttempts !== undefined)
+                this.maxAttempts = settings.maxAttempts
+              if (settings.chatEnabled !== undefined)
+                this.chatEnabled = settings.chatEnabled
+              if (settings.gameLogEnabled !== undefined)
+                this.gameLogEnabled = settings.gameLogEnabled
 
-            console.log("WordleGame: Updated State", {
-              chat: this.chatEnabled,
-              log: this.gameLogEnabled,
-              timer: this.maxTimer,
-            })
-
-            this.server.broadcastState()
-          } else {
-            console.log("WordleGame: UPDATE_SETTINGS rejected (Not Admin)")
+              this.server.broadcastState()
+            }
           }
           break
       }

@@ -1,6 +1,7 @@
 import { BaseGame } from "../game-engine"
 import {
   BombPartyClientMessageType,
+  BombPartySettingsSchema,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
@@ -257,36 +258,21 @@ export class BombPartyGame extends BaseGame {
           break
         case BombPartyClientMessageType.UPDATE_SETTINGS:
           if (senderPlayer?.isAdmin) {
-            // Global settings are handled by Server now.
-
-            if (typeof data.startingLives === "number") {
-              let lives = Math.floor(data.startingLives)
-              if (lives < 1) lives = 1
-              if (lives > 10) lives = 10
-              this.startingLives = lives
+            const result = BombPartySettingsSchema.safeParse(data)
+            if (result.success) {
+              const settings = result.data
+              if (settings.startingLives !== undefined)
+                this.startingLives = settings.startingLives
+              if (settings.maxTimer !== undefined)
+                this.maxTimer = settings.maxTimer
+              if (settings.syllableChangeThreshold !== undefined)
+                this.syllableChangeThreshold = settings.syllableChangeThreshold
+              if (settings.chatEnabled !== undefined)
+                this.chatEnabled = settings.chatEnabled
+              if (settings.gameLogEnabled !== undefined)
+                this.gameLogEnabled = settings.gameLogEnabled
+              this.server.broadcastState()
             }
-            if (typeof data.maxTimer === "number") {
-              let timer = Math.floor(data.maxTimer)
-              if (timer < 5) timer = 5
-              if (timer > 20) timer = 20
-              this.maxTimer = timer
-            }
-            if (
-              data.syllableChangeThreshold !== undefined &&
-              typeof data.syllableChangeThreshold === "number"
-            ) {
-              this.syllableChangeThreshold = Math.max(
-                1,
-                Math.min(10, data.syllableChangeThreshold),
-              )
-            }
-            if (data.chatEnabled !== undefined) {
-              this.chatEnabled = data.chatEnabled
-            }
-            if (data.gameLogEnabled !== undefined) {
-              this.gameLogEnabled = data.gameLogEnabled
-            }
-            this.server.broadcastState()
           }
           break
       }

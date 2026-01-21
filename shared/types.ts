@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export enum ServerMessageType {
   STATE_UPDATE = "STATE_UPDATE",
   ERROR = "ERROR",
@@ -11,7 +13,57 @@ export enum ServerMessageType {
   VALID_WORD = "VALID_WORD",
 }
 
-// GameMode enum added previously
+// Game Configuration Constants
+export const GAME_CONFIG = {
+  BOMB_PARTY: {
+    LIVES: { MIN: 1, MAX: 10 },
+    TIMER: { MIN: 5, MAX: 60 },
+    SYLLABLE_CHANGE: { MIN: 1, MAX: 10 },
+  },
+  WORDLE: {
+    TIMER: { MIN: 5, MAX: 300 },
+    ATTEMPTS: { MIN: 1, MAX: 20 },
+  },
+}
+
+// Zod Schemas for Settings
+export const BombPartySettingsSchema = z.object({
+  startingLives: z
+    .number()
+    .min(GAME_CONFIG.BOMB_PARTY.LIVES.MIN)
+    .max(GAME_CONFIG.BOMB_PARTY.LIVES.MAX)
+    .optional(),
+  maxTimer: z
+    .number()
+    .min(GAME_CONFIG.BOMB_PARTY.TIMER.MIN)
+    .max(GAME_CONFIG.BOMB_PARTY.TIMER.MAX)
+    .optional(),
+  syllableChangeThreshold: z
+    .number()
+    .min(GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN)
+    .max(GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX)
+    .optional(),
+  chatEnabled: z.boolean().optional(),
+  gameLogEnabled: z.boolean().optional(),
+})
+
+export const WordleSettingsSchema = z.object({
+  maxTimer: z
+    .number()
+    .min(GAME_CONFIG.WORDLE.TIMER.MIN)
+    .max(GAME_CONFIG.WORDLE.TIMER.MAX)
+    .optional(),
+  maxAttempts: z
+    .number()
+    .min(GAME_CONFIG.WORDLE.ATTEMPTS.MIN)
+    .max(GAME_CONFIG.WORDLE.ATTEMPTS.MAX)
+    .optional(),
+  chatEnabled: z.boolean().optional(),
+  gameLogEnabled: z.boolean().optional(),
+})
+
+export type BombPartySettings = z.infer<typeof BombPartySettingsSchema>
+export type WordleSettings = z.infer<typeof WordleSettingsSchema>
 
 export type GuessResult = "correct" | "present" | "absent"
 
@@ -82,27 +134,14 @@ export type WordleClientMessage =
   | { type: WordleClientMessageType.STOP_GAME }
   | { type: WordleClientMessageType.SUBMIT_WORD; word: string }
   | { type: WordleClientMessageType.UPDATE_TYPING; text: string }
-  | {
-      type: WordleClientMessageType.UPDATE_SETTINGS
-      maxTimer?: number
-      maxAttempts?: number
-      chatEnabled?: boolean
-      gameLogEnabled?: boolean
-    }
+  | (WordleSettings & { type: WordleClientMessageType.UPDATE_SETTINGS })
 
 export type BombPartyClientMessage =
   | { type: BombPartyClientMessageType.START_GAME }
   | { type: BombPartyClientMessageType.STOP_GAME }
   | { type: BombPartyClientMessageType.SUBMIT_WORD; word: string }
   | { type: BombPartyClientMessageType.UPDATE_TYPING; text: string }
-  | {
-      type: BombPartyClientMessageType.UPDATE_SETTINGS
-      startingLives?: number
-      maxTimer?: number
-      syllableChangeThreshold?: number
-      chatEnabled?: boolean
-      gameLogEnabled?: boolean
-    }
+  | (BombPartySettings & { type: BombPartyClientMessageType.UPDATE_SETTINGS })
 
 export type ClientMessage =
   | GlobalClientMessage

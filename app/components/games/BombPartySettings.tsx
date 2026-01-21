@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from "../../../shared/types"
+
 interface BombPartySettingsProps {
   startingLives: number
   maxTimer: number
@@ -47,8 +49,8 @@ export default function BombPartySettings({
         </label>
         <input
           type="number"
-          min="1"
-          max="10"
+          min={GAME_CONFIG.BOMB_PARTY.LIVES.MIN}
+          max={GAME_CONFIG.BOMB_PARTY.LIVES.MAX}
           value={startingLives}
           onChange={(e) =>
             onUpdate({ startingLives: parseInt(e.target.value) || 2 })
@@ -57,7 +59,8 @@ export default function BombPartySettings({
         />
         <label className="label">
           <span className="label-text-alt opacity-70">
-            Value between 1 and 10
+            Value between {GAME_CONFIG.BOMB_PARTY.LIVES.MIN} and{" "}
+            {GAME_CONFIG.BOMB_PARTY.LIVES.MAX}
           </span>
         </label>
       </div>
@@ -67,8 +70,8 @@ export default function BombPartySettings({
         </label>
         <input
           type="number"
-          min="5"
-          max="20"
+          min={GAME_CONFIG.BOMB_PARTY.TIMER.MIN}
+          max={GAME_CONFIG.BOMB_PARTY.TIMER.MAX}
           value={maxTimer}
           onChange={(e) =>
             onUpdate({ maxTimer: parseInt(e.target.value) || 10 })
@@ -77,7 +80,8 @@ export default function BombPartySettings({
         />
         <label className="label">
           <span className="label-text-alt opacity-70">
-            Value between 5 and 20
+            Value between {GAME_CONFIG.BOMB_PARTY.TIMER.MIN} and{" "}
+            {GAME_CONFIG.BOMB_PARTY.TIMER.MAX}
           </span>
         </label>
       </div>
@@ -89,8 +93,8 @@ export default function BombPartySettings({
         </label>
         <input
           type="number"
-          min="1"
-          max="5"
+          min={GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN}
+          max={GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX}
           value={syllableChangeThreshold}
           onChange={(e) =>
             onUpdate({
@@ -101,7 +105,8 @@ export default function BombPartySettings({
         />
         <label className="label">
           <span className="label-text-alt opacity-70">
-            Value between 1 and 5
+            Value between {GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN} and{" "}
+            {GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX}
           </span>
         </label>
       </div>

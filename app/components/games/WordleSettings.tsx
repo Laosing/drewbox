@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from "../../../shared/types"
+
 interface WordleSettingsProps {
   maxTimer: number
   maxAttempts: number
@@ -45,8 +47,8 @@ export default function WordleSettings({
         </label>
         <input
           type="number"
-          min="5"
-          max="30"
+          min={GAME_CONFIG.WORDLE.TIMER.MIN}
+          max={GAME_CONFIG.WORDLE.TIMER.MAX}
           value={maxTimer}
           onChange={(e) =>
             onUpdate({ maxTimer: parseInt(e.target.value) || 10 })
@@ -55,7 +57,8 @@ export default function WordleSettings({
         />
         <label className="label">
           <span className="label-text-alt opacity-70">
-            Value between 5 and 30
+            Value between {GAME_CONFIG.WORDLE.TIMER.MIN} and{" "}
+            {GAME_CONFIG.WORDLE.TIMER.MAX}
           </span>
         </label>
       </div>
@@ -66,8 +69,8 @@ export default function WordleSettings({
         </label>
         <input
           type="number"
-          min="1"
-          max="10"
+          min={GAME_CONFIG.WORDLE.ATTEMPTS.MIN}
+          max={GAME_CONFIG.WORDLE.ATTEMPTS.MAX}
           value={maxAttempts || 5}
           onChange={(e) =>
             onUpdate({ maxAttempts: parseInt(e.target.value) || 5 })
@@ -76,7 +79,8 @@ export default function WordleSettings({
         />
         <label className="label">
           <span className="label-text-alt opacity-70">
-            Value between 1 and 10
+            Value between {GAME_CONFIG.WORDLE.ATTEMPTS.MIN} and{" "}
+            {GAME_CONFIG.WORDLE.ATTEMPTS.MAX}
           </span>
         </label>
       </div>

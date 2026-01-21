@@ -380,11 +380,6 @@ export default class Server implements Party.Server {
 
     try {
       const data = JSON.parse(message) as ClientMessage
-      console.log(
-        "Server: Received message",
-        data.type,
-        JSON.stringify(data).substring(0, 100),
-      )
       const senderPlayer = this.players.get(sender.id)
 
       // GLOBAL HANDLERS

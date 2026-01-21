@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import type { Player } from "../../shared/types"
 import {
   BombPartyClientMessageType,
+  BombPartySettingsSchema,
   GameMode,
   GameState,
   GlobalClientMessageType,
   ServerMessageType,
   WordleClientMessageType,
+  WordleSettingsSchema,
 } from "../../shared/types"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
 import { host } from "../utils"
@@ -78,34 +80,23 @@ function GameCanvasInner({
     } = pendingSettings
 
     // Further sanitize to only include modifiable settings
-    const validSettings: any = {}
-    if (rawSettings.chatEnabled !== undefined)
-      validSettings.chatEnabled = rawSettings.chatEnabled
-    if (rawSettings.gameLogEnabled !== undefined)
-      validSettings.gameLogEnabled = rawSettings.gameLogEnabled
-    if (rawSettings.maxTimer !== undefined)
-      validSettings.maxTimer = rawSettings.maxTimer
-    if (rawSettings.maxAttempts !== undefined)
-      validSettings.maxAttempts = rawSettings.maxAttempts
-    if (rawSettings.startingLives !== undefined)
-      validSettings.startingLives = rawSettings.startingLives
-    if (rawSettings.syllableChangeThreshold !== undefined)
-      validSettings.syllableChangeThreshold =
-        rawSettings.syllableChangeThreshold
-
-    // Ensure we have something to send
-    if (Object.keys(validSettings).length > 0) {
-      if (gameMode === GameMode.WORDLE) {
+    // Use Zod keys to filter pendingSettings
+    if (gameMode === GameMode.WORDLE) {
+      const result = WordleSettingsSchema.partial().safeParse(rawSettings)
+      if (result.success && Object.keys(result.data).length > 0) {
         socket.send(
           JSON.stringify({
-            ...validSettings,
-            type: WordleClientMessageType.UPDATE_SETTINGS, // Ensure this overrides any spread
+            ...result.data,
+            type: WordleClientMessageType.UPDATE_SETTINGS,
           }),
         )
-      } else if (gameMode === GameMode.BOMB_PARTY) {
+      }
+    } else if (gameMode === GameMode.BOMB_PARTY) {
+      const result = BombPartySettingsSchema.partial().safeParse(rawSettings)
+      if (result.success && Object.keys(result.data).length > 0) {
         socket.send(
           JSON.stringify({
-            ...validSettings,
+            ...result.data,
             type: BombPartyClientMessageType.UPDATE_SETTINGS,
           }),
         )
@@ -201,7 +192,6 @@ function GameCanvasInner({
       if (data.gameState) setGameState(data.gameState)
       if (data.players) setPlayers(data.players)
       if (data.gameMode) {
-        console.log("GameCanvas received mode:", data.gameMode)
         setGameMode(data.gameMode)
       }
       if (data.chatEnabled !== undefined) setChatEnabled(data.chatEnabled)
