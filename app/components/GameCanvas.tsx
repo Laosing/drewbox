@@ -5,6 +5,7 @@ import type { Player } from "../../shared/types"
 import {
   BombPartyClientMessageType,
   BombPartySettingsSchema,
+  GAME_CONFIG,
   GameMode,
   GameState,
   GlobalClientMessageType,
@@ -349,13 +350,19 @@ function GameCanvasInner({
         {gameMode === GameMode.BOMB_PARTY && (
           <BombPartySettings
             startingLives={
-              pendingSettings.startingLives ?? serverState.startingLives ?? 2
+              pendingSettings.startingLives ??
+              serverState.startingLives ??
+              GAME_CONFIG.BOMB_PARTY.LIVES.DEFAULT
             }
-            maxTimer={pendingSettings.maxTimer ?? serverState.maxTimer ?? 10}
+            maxTimer={
+              pendingSettings.maxTimer ??
+              serverState.maxTimer ??
+              GAME_CONFIG.BOMB_PARTY.TIMER.DEFAULT
+            }
             syllableChangeThreshold={
               pendingSettings.syllableChangeThreshold ??
               serverState.syllableChangeThreshold ??
-              2
+              GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
             }
             chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
             gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
@@ -364,9 +371,15 @@ function GameCanvasInner({
         )}
         {gameMode === GameMode.WORDLE && (
           <WordleSettings
-            maxTimer={pendingSettings.maxTimer ?? serverState.maxTimer ?? 10}
+            maxTimer={
+              pendingSettings.maxTimer ??
+              serverState.maxTimer ??
+              GAME_CONFIG.WORDLE.TIMER.DEFAULT
+            }
             maxAttempts={
-              pendingSettings.maxAttempts ?? serverState.maxAttempts ?? 5
+              pendingSettings.maxAttempts ??
+              serverState.maxAttempts ??
+              GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT
             }
             chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
             gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
@@ -579,7 +592,7 @@ export default function GameCanvas({ room }: { room: string }) {
 
   if (checkingStatus) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center">
         <span className="loading loading-spinner loading-lg"></span>
       </div>
     )

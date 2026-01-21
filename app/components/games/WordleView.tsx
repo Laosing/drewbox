@@ -53,7 +53,7 @@ export default function WordleView({
     guesses = [] as Guess[],
     activePlayerId,
     timer = 10,
-    maxTimer = 10,
+    maxTimer = 60,
     maxAttempts = 5,
     dictionaryLoaded,
   } = serverState
@@ -138,11 +138,8 @@ export default function WordleView({
   })
 
   // Determine rows to show
-  // We show up to 5 previous guesses, plus the current input row
-  // Actually, standard Wordle shows 6 static rows.
-  // Since this is multiplayer/infinite, maybe we just show the last few guesses + current?
-  // Let's show the last 5 guesses + current attempt slot.
-  const visibleGuesses = guesses.slice(-5)
+  // We show up to the max configured attempts, plus the current input row
+  const visibleGuesses = guesses.slice(-1 * Math.max(5, maxAttempts))
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
@@ -157,15 +154,16 @@ export default function WordleView({
           </button>
           <Logo name={room} />
           <div className="w-16 flex justify-end">
-            {gameState === GameState.LOBBY && isAdmin && (
-              <button
-                className="btn btn-ghost btn-sm btn-circle"
-                onClick={onOpenSettings}
-                title="Settings"
-              >
-                <SettingsIcon />
-              </button>
-            )}
+            {(gameState === GameState.LOBBY || gameState === GameState.ENDED) &&
+              isAdmin && (
+                <button
+                  className="btn btn-ghost btn-sm btn-circle"
+                  onClick={onOpenSettings}
+                  title="Settings"
+                >
+                  <SettingsIcon />
+                </button>
+              )}
           </div>
         </div>
 

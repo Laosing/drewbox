@@ -51,7 +51,10 @@ export default function WordleSettings({
           max={GAME_CONFIG.WORDLE.TIMER.MAX}
           value={maxTimer}
           onChange={(e) =>
-            onUpdate({ maxTimer: parseInt(e.target.value) || 10 })
+            onUpdate({
+              maxTimer:
+                parseInt(e.target.value) || GAME_CONFIG.WORDLE.TIMER.DEFAULT,
+            })
           }
           className="input input-bordered w-full max-w-xs"
         />
@@ -71,9 +74,12 @@ export default function WordleSettings({
           type="number"
           min={GAME_CONFIG.WORDLE.ATTEMPTS.MIN}
           max={GAME_CONFIG.WORDLE.ATTEMPTS.MAX}
-          value={maxAttempts || 5}
+          value={maxAttempts || GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT}
           onChange={(e) =>
-            onUpdate({ maxAttempts: parseInt(e.target.value) || 5 })
+            onUpdate({
+              maxAttempts:
+                parseInt(e.target.value) || GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT,
+            })
           }
           className="input input-bordered w-full max-w-xs"
         />

@@ -16,13 +16,13 @@ export enum ServerMessageType {
 // Game Configuration Constants
 export const GAME_CONFIG = {
   BOMB_PARTY: {
-    LIVES: { MIN: 1, MAX: 10 },
-    TIMER: { MIN: 5, MAX: 60 },
-    SYLLABLE_CHANGE: { MIN: 1, MAX: 10 },
+    LIVES: { MIN: 1, MAX: 10, DEFAULT: 2 },
+    TIMER: { MIN: 5, MAX: 60, DEFAULT: 10 },
+    SYLLABLE_CHANGE: { MIN: 1, MAX: 10, DEFAULT: 2 },
   },
   WORDLE: {
-    TIMER: { MIN: 5, MAX: 300 },
-    ATTEMPTS: { MIN: 1, MAX: 20 },
+    TIMER: { MIN: 5, MAX: 300, DEFAULT: 60 },
+    ATTEMPTS: { MIN: 5, MAX: 15, DEFAULT: 5 },
   },
 }
 

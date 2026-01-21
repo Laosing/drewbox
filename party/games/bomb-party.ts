@@ -2,6 +2,7 @@ import { BaseGame } from "../game-engine"
 import {
   BombPartyClientMessageType,
   BombPartySettingsSchema,
+  GAME_CONFIG,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
@@ -15,9 +16,10 @@ export class BombPartyGame extends BaseGame {
   usedWords: Set<string> = new Set()
   activePlayerId: string | null = null
   timer: number = 0
-  maxTimer: number = 10
-  startingLives: number = 2
-  syllableChangeThreshold: number = 2
+  maxTimer: number = GAME_CONFIG.BOMB_PARTY.TIMER.DEFAULT
+  startingLives: number = GAME_CONFIG.BOMB_PARTY.LIVES.DEFAULT
+  syllableChangeThreshold: number =
+    GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
   syllableTurnCount: number = 0
 
   turnStartTime: number = 0

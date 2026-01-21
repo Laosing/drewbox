@@ -2,6 +2,7 @@ import { BaseGame } from "../game-engine"
 import {
   WordleClientMessageType,
   WordleSettingsSchema,
+  GAME_CONFIG,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
@@ -13,9 +14,60 @@ import type {
 } from "../../shared/types" // Updated type import
 
 export class WordleGame extends BaseGame {
-  // ... (keeping class props same)
+  targetWord: string = ""
+  guesses: Guess[] = []
 
-  // ...
+  activePlayerId: string | null = null
+  turnStartTime: number = 0
+  timer: number = 0
+  maxTimer: number = GAME_CONFIG.WORDLE.TIMER.DEFAULT
+  maxAttempts: number = GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT
+
+  private tickInterval: ReturnType<typeof setTimeout> | null = null
+  private nextTickTime: number = 0
+
+  constructor(server: any) {
+    super(server)
+  }
+
+  onStart(): void {
+    if (this.players.size < 1) return
+    if (!this.server.dictionaryReady) {
+      this.broadcast({
+        type: ServerMessageType.ERROR,
+        message: "Dictionary not loaded!",
+      })
+      return
+    }
+
+    this.server.gameState = GameState.PLAYING
+    this.guesses = []
+
+    // Reset all players to alive
+    for (const p of this.players.values()) {
+      p.isAlive = true
+    }
+
+    // Pick target word
+    try {
+      this.targetWord = this.server.dictionary.getRandomWord(5)
+    } catch (e) {
+      this.broadcast({
+        type: ServerMessageType.ERROR,
+        message: "Failed to pick word",
+      })
+      this.endGame()
+      return
+    }
+
+    this.startLoop()
+    this.nextTurn(true)
+
+    this.broadcast({
+      type: ServerMessageType.SYSTEM_MESSAGE,
+      message: "Wordle Game Started! Guess the 5-letter word.",
+    })
+  }
 
   onMessage(message: string, sender: Party.Connection): void {
     try {
@@ -79,63 +131,6 @@ export class WordleGame extends BaseGame {
     } catch (e) {
       console.error(e)
     }
-  }
-
-  // ... (keep props)
-
-  targetWord: string = ""
-  guesses: Guess[] = []
-
-  activePlayerId: string | null = null
-  turnStartTime: number = 0
-  timer: number = 0
-  maxTimer: number = 10
-  maxAttempts: number = 5
-
-  private tickInterval: ReturnType<typeof setTimeout> | null = null
-  private nextTickTime: number = 0
-
-  constructor(server: any) {
-    super(server)
-  }
-
-  onStart(): void {
-    if (this.players.size < 1) return
-    if (!this.server.dictionaryReady) {
-      this.broadcast({
-        type: ServerMessageType.ERROR,
-        message: "Dictionary not loaded!",
-      })
-      return
-    }
-
-    this.server.gameState = GameState.PLAYING
-    this.guesses = []
-
-    // Reset all players to alive
-    for (const p of this.players.values()) {
-      p.isAlive = true
-    }
-
-    // Pick target word
-    try {
-      this.targetWord = this.server.dictionary.getRandomWord(5)
-    } catch (e) {
-      this.broadcast({
-        type: ServerMessageType.ERROR,
-        message: "Failed to pick word",
-      })
-      this.endGame()
-      return
-    }
-
-    this.startLoop()
-    this.nextTurn(true)
-
-    this.broadcast({
-      type: ServerMessageType.SYSTEM_MESSAGE,
-      message: "Wordle Game Started! Guess the 5-letter word.",
-    })
   }
 
   onTick(): void {

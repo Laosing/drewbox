@@ -80,7 +80,7 @@ function App() {
   return (
     <main className="relative px-6 pt-14 lg:px-8">
       <div
-        className="absolute inset-0 h-screen w-screen -z-1 transition-all duration-700 ease-in-out"
+        className="absolute inset-0 h-full w-full -z-1 transition-all duration-700 ease-in-out"
         style={{
           backgroundImage: getThemeGradient(currentTheme),
           opacity: 0.5,
