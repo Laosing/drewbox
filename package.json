@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "cleanup": "lsof -t -i:1999 -i:5173 -i:5174 | xargs -r kill -9 || true",
-    "dev": "pnpm run cleanup && mkdir -p dist && cp public/dictionary.bin dist/ && vite & sleep 1 && partykit dev --live",
+    "dev": "concurrently \"pnpm start:client\" \"pnpm start:server\"",
+    "start:client": "vite",
+    "start:server": "partykit dev --live",
     "build": "vite build",
     "deploy": "pnpm run build && partykit deploy",
     "test": "vitest"

@@ -1,14 +1,13 @@
 import { createRoot } from "react-dom/client"
-import "./styles.css"
 import GameCanvas from "./components/GameCanvas"
 import LobbyView from "./components/LobbyView"
 import ThemeController from "./components/ThemeController"
+import "./styles.css"
 
 import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
 
-import { useState } from "react"
-// ... imports
+import { StrictMode, useState } from "react"
 
 const getThemeGradient = (theme: string) => {
   switch (theme) {
@@ -94,9 +93,13 @@ function App() {
         <div key="a">a</div>
         <div key="b">b</div>
         <div key="c">c</div>
-      </GridLayout> */}
+        </GridLayout> */}
     </main>
   )
 }
 
-createRoot(document.getElementById("app")!).render(<App />)
+createRoot(document.getElementById("app")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)

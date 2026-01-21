@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import usePartySocket from "partysocket/react"
 import { Logo } from "./Logo"
 import { ServerMessageType, GameMode } from "../../shared/types"
+import { host } from "../utils"
 
 export default function LobbyView() {
   const [availableRooms, setAvailableRooms] = useState<
@@ -32,6 +33,7 @@ export default function LobbyView() {
   }, [])
 
   usePartySocket({
+    host,
     party: "lobby",
     room: "global",
     onMessage(evt) {

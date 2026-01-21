@@ -1,23 +1,24 @@
 import clsx from "clsx"
 import usePartySocket from "partysocket/react"
 import { useEffect, useRef, useState } from "react"
+import type { Player } from "../../shared/types"
 import {
-  GlobalClientMessageType,
-  WordleClientMessageType,
   BombPartyClientMessageType,
   GameMode,
   GameState,
+  GlobalClientMessageType,
   ServerMessageType,
+  WordleClientMessageType,
 } from "../../shared/types"
-import type { Player } from "../../shared/types"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
+import { host } from "../utils"
 import { Logo } from "./Logo"
 import { Modal } from "./Modal"
 import StatusCard from "./StatusCard"
-import BombPartyView from "./games/BombPartyView"
 import BombPartySettings from "./games/BombPartySettings"
-import WordleView from "./games/WordleView"
+import BombPartyView from "./games/BombPartyView"
 import WordleSettings from "./games/WordleSettings"
+import WordleView from "./games/WordleView"
 
 type ServerMessage = {
   type: string
@@ -146,6 +147,7 @@ function GameCanvasInner({
   })
 
   const socket = usePartySocket({
+    host,
     room: room,
     // Add name to query
     query: {
