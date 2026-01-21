@@ -212,23 +212,29 @@ export default function WordleView({
           </div>
         )}
 
-        {gameState === GameState.PLAYING && (
+        {(gameState === GameState.PLAYING || gameState === GameState.ENDED) && (
           <div className="flex flex-col items-center gap-6">
-            {/* Timer Bar */}
-            <div className="w-full h-2 bg-base-300 rounded-full overflow-hidden relative">
-              <div
-                className={clsx(
-                  "h-full transition-all ease-linear",
-                  timer < 3 ? "bg-error" : "bg-primary",
-                )}
-                style={{ width: `${(timer / maxTimer) * 100}%` }}
-              ></div>
-            </div>
+            {/* Timer Bar (Only show when playing) */}
+            {gameState === GameState.PLAYING && (
+              <div className="w-full h-2 bg-base-300 rounded-full overflow-hidden relative">
+                <div
+                  className={clsx(
+                    "h-full transition-all ease-linear",
+                    timer < 3 ? "bg-error" : "bg-primary",
+                  )}
+                  style={{ width: `${(timer / maxTimer) * 100}%` }}
+                ></div>
+              </div>
+            )}
 
             {/* Turn Indicator */}
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-2">
-                {isMyTurn ? (
+                {gameState === GameState.ENDED ? (
+                  <span className="badge badge-neutral badge-lg p-3">
+                    Game Over
+                  </span>
+                ) : isMyTurn ? (
                   <span className="badge badge-primary badge-lg p-3">
                     Your Turn!
                   </span>
@@ -249,7 +255,8 @@ export default function WordleView({
             <div
               className="flex flex-col gap-2 mb-4 cursor-text"
               onClick={() => {
-                if (isMyTurn) inputRef.current?.focus()
+                if (isMyTurn && gameState === GameState.PLAYING)
+                  inputRef.current?.focus()
               }}
             >
               {/* Previous Guesses */}
@@ -278,50 +285,60 @@ export default function WordleView({
                 </div>
               ))}
 
-              {/* Current Input Row */}
-              <div className="flex gap-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const char = (isMyTurn ? input : activePlayerInput)[i]
-                  return (
-                    <div
-                      key={i}
-                      className={clsx(
-                        "w-10 h-10 md:w-12 md:h-12 flex items-center justify-center font-bold text-xl border-2 bg-base-100 uppercase transition-colors",
-                        char ? "border-base-content/50" : "border-base-200",
-                        isMyTurn ? "border-primary/50" : "",
-                      )}
-                    >
-                      {char}
-                    </div>
-                  )
-                })}
-                <div className="flex items-center ml-2 text-xs opacity-50 w-20">
-                  {activePlayer?.name || "..."}
+              {/* Current Input Row (Only when playing) */}
+              {gameState === GameState.PLAYING && (
+                <div className="flex gap-2">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const char = (isMyTurn ? input : activePlayerInput)[i]
+                    return (
+                      <div
+                        key={i}
+                        className={clsx(
+                          "w-10 h-10 md:w-12 md:h-12 flex items-center justify-center font-bold text-xl border-2 bg-base-100 uppercase transition-colors",
+                          char ? "border-base-content/50" : "border-base-200",
+                          isMyTurn ? "border-primary/50" : "",
+                        )}
+                      >
+                        {char}
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center ml-2 text-xs opacity-50 w-20">
+                    {activePlayer?.name || "..."}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Hidden Input */}
-            <form
-              onSubmit={handleSubmit}
-              className="absolute opacity-0 w-0 h-0 overflow-hidden"
-            >
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => isMyTurn && handleTyping(e.target.value)}
-                autoFocus={isMyTurn}
-                maxLength={5}
-              />
-              <button type="submit">Submit</button>
-            </form>
+            {gameState === GameState.PLAYING && (
+              <form
+                onSubmit={handleSubmit}
+                className="absolute opacity-0 w-0 h-0 overflow-hidden"
+              >
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => isMyTurn && handleTyping(e.target.value)}
+                  autoFocus={isMyTurn}
+                  maxLength={5}
+                />
+                <button type="submit">Submit</button>
+              </form>
+            )}
 
             <div className="text-error h-6 text-sm font-bold min-h-[1.5rem]">
               {tempError}
             </div>
 
-            {/* Keyboard */}
-            <div className="flex flex-col gap-1.5 select-none w-full items-center">
+            {/* Keyboard (Disabled when ended) */}
+            <div
+              className={clsx(
+                "flex flex-col gap-1.5 select-none w-full items-center",
+                gameState === GameState.ENDED &&
+                  "opacity-50 pointer-events-none",
+              )}
+            >
               {KEYS.map((row, i) => (
                 <div key={i} className="flex gap-1.5">
                   {row.map((key) => {
@@ -375,7 +392,7 @@ export default function WordleView({
               ))}
             </div>
 
-            {isAdmin && (
+            {isAdmin && gameState === GameState.PLAYING && (
               <button
                 onClick={() =>
                   socket.send(
@@ -387,21 +404,37 @@ export default function WordleView({
                 Stop Game
               </button>
             )}
-          </div>
-        )}
 
-        {gameState === GameState.ENDED && (
-          <div className="py-10 animate-in fade-in zoom-in duration-500">
-            <h2 className="text-4xl font-black mb-4 text-primary">GAME OVER</h2>
-            {serverState.winnerId ? (
-              <div className="text-xl">
-                Winner:{" "}
-                <span className="font-bold">
-                  {players.find((p) => p.id === serverState.winnerId)?.name}
-                </span>
+            {gameState === GameState.ENDED && (
+              <div className="py-6 animate-in fade-in zoom-in duration-500 text-center">
+                <h2 className="text-4xl font-black mb-4 text-primary">
+                  GAME OVER
+                </h2>
+                {serverState.winnerId ? (
+                  <div className="text-xl">
+                    Winner:{" "}
+                    <span className="font-bold">
+                      {players.find((p) => p.id === serverState.winnerId)?.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xl">No winner this time!</div>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() =>
+                      socket.send(
+                        JSON.stringify({
+                          type: WordleClientMessageType.START_GAME,
+                        }),
+                      )
+                    }
+                    className="btn btn-primary btn-lg mt-6"
+                  >
+                    Play Again
+                  </button>
+                )}
               </div>
-            ) : (
-              <div className="text-xl">No winner this time!</div>
             )}
           </div>
         )}

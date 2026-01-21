@@ -24,7 +24,8 @@ export class WordleGame extends BaseGame {
         case WordleClientMessageType.START_GAME:
           if (
             this.players.get(sender.id)?.isAdmin &&
-            this.server.gameState === GameState.LOBBY
+            (this.server.gameState === GameState.LOBBY ||
+              this.server.gameState === GameState.ENDED)
           ) {
             this.onStart()
           }
@@ -111,6 +112,11 @@ export class WordleGame extends BaseGame {
     this.server.gameState = GameState.PLAYING
     this.guesses = []
 
+    // Reset all players to alive
+    for (const p of this.players.values()) {
+      p.isAlive = true
+    }
+
     // Pick target word
     try {
       this.targetWord = this.server.dictionary.getRandomWord(5)
@@ -191,10 +197,27 @@ export class WordleGame extends BaseGame {
     }
   }
 
+  onPlayerJoin(player: any) {
+    // If game is playing, mark new player as not alive (spectator) for this round
+    if (this.server.gameState === GameState.PLAYING) {
+      player.isAlive = false
+      this.sendTo(player.id, {
+        type: ServerMessageType.SYSTEM_MESSAGE,
+        message: "Game in progress. You are spectating until the next round.",
+      })
+    } else {
+      player.isAlive = true
+    }
+  }
+
   nextTurn(isFirst: boolean = false) {
     if (this.server.gameState !== GameState.PLAYING) return
 
-    const playerIds = Array.from(this.players.keys())
+    // Only include players who were present at start (isAlive)
+    const playerIds = Array.from(this.players.values())
+      .filter((p) => p.isAlive)
+      .map((p) => p.id)
+
     if (playerIds.length === 0) {
       this.endGame()
       return
@@ -204,6 +227,7 @@ export class WordleGame extends BaseGame {
       this.activePlayerId = playerIds[0]
     } else if (this.activePlayerId) {
       const currentIndex = playerIds.indexOf(this.activePlayerId)
+      // Find next player, wrapping around
       const nextIndex = (currentIndex + 1) % playerIds.length
       this.activePlayerId = playerIds[nextIndex]
     } else {
@@ -289,11 +313,6 @@ export class WordleGame extends BaseGame {
       message: `The word was ${this.targetWord}`,
     })
     this.server.broadcastState()
-
-    setTimeout(() => {
-      this.server.gameState = GameState.LOBBY
-      this.server.broadcastState()
-    }, 5000)
   }
 
   getState(): Record<string, any> {
