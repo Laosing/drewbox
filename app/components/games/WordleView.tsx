@@ -8,8 +8,9 @@ import {
   type Guess,
   type GuessResult,
 } from "../../../shared/types"
-import { CustomAvatar, Logo } from "../Logo"
-import { CopyIcon, EditIcon, SettingsIcon } from "../Icons"
+import { CustomAvatar } from "../Logo"
+import { EditIcon } from "../Icons"
+import { GameHeader } from "../GameHeader"
 import clsx from "clsx"
 
 interface WordleViewProps {
@@ -145,42 +146,13 @@ export default function WordleView({
   return (
     <div className="flex flex-col gap-6 mx-auto w-full">
       {/* Header Card */}
-      <div className="card bg-base-100 shadow-xl p-4 md:p-6 text-center border border-base-300">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="btn btn-ghost btn-sm"
-          >
-            ← Lobby
-          </button>
-          <Logo name={room} />
-          <div className="w-16 flex justify-end">
-            {(gameState === GameState.LOBBY || gameState === GameState.ENDED) &&
-              isAdmin && (
-                <button
-                  className="btn btn-ghost btn-sm btn-circle"
-                  onClick={onOpenSettings}
-                  title="Settings"
-                >
-                  <SettingsIcon />
-                </button>
-              )}
-          </div>
-        </div>
-
-        <div className="text-sm opacity-70 mb-4">
-          Room:{" "}
-          <button
-            className="font-mono text-lg badge badge-neutral tracking-widest hover:badge-primary transition-colors cursor-pointer gap-2 font-bold"
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
-            title="Copy room link"
-          >
-            {room.toUpperCase()}
-            <CopyIcon />
-            {password && " 🔒"}
-          </button>
-        </div>
-
+      <GameHeader
+        room={room}
+        password={password}
+        isAdmin={isAdmin}
+        gameState={gameState}
+        onOpenSettings={onOpenSettings}
+      >
         {gameState === GameState.LOBBY && (
           <div className="flex flex-col gap-4 items-center py-6">
             <h2 className="text-2xl font-bold">Multiplayer Wordle</h2>
@@ -453,7 +425,7 @@ export default function WordleView({
             )}
           </div>
         )}
-      </div>
+      </GameHeader>
 
       {/* Players Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

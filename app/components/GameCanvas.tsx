@@ -49,7 +49,7 @@ function GameCanvasInner({
 }) {
   const [gameState, setGameState] = useState<GameState>(GameState.LOBBY)
   const [players, setPlayers] = useState<Player[]>([])
-  const [gameMode, setGameMode] = useState<GameMode>(GameMode.BOMB_PARTY)
+  const [gameMode, setGameMode] = useState<GameMode>()
 
   // Generic Server State (for game specific data)
   const [serverState, setServerState] = useState<any>({})
@@ -308,6 +308,8 @@ function GameCanvasInner({
 
   const isAmAdmin = players.find((p) => p.id === socket.id)?.isAdmin
 
+  console.log({ gameMode })
+
   return (
     <div className="container mx-auto p-4 flex flex-col gap-6 max-w-4xl">
       {/* Name Modal */}
@@ -416,7 +418,7 @@ function GameCanvasInner({
       </Modal>
 
       {/* Game Content */}
-      {gameMode === GameMode.WORDLE ? (
+      {gameMode === GameMode.WORDLE && (
         <WordleView
           socket={socket}
           players={players}
@@ -433,7 +435,8 @@ function GameCanvasInner({
           room={room}
           password={password}
         />
-      ) : gameMode === GameMode.BOMB_PARTY ? (
+      )}
+      {gameMode === GameMode.BOMB_PARTY && (
         <BombPartyView
           socket={socket}
           players={players}
@@ -455,7 +458,8 @@ function GameCanvasInner({
           password={password}
           room={room}
         />
-      ) : gameMode === GameMode.WORD_CHAIN ? (
+      )}
+      {gameMode === GameMode.WORD_CHAIN && (
         <WordChainView
           socket={socket}
           players={players}
@@ -472,9 +476,9 @@ function GameCanvasInner({
           room={room}
           password={password}
         />
-      ) : (
-        <div className="alert alert-error">Unknown Game Mode: {gameMode}</div>
       )}
+
+      {!gameMode && <div className="skeleton h-100 w-full"></div>}
 
       {/* Logs & Chat */}
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-4`}>
@@ -555,7 +559,7 @@ function GameCanvasInner({
 }
 
 export default function GameCanvas({ room }: { room: string }) {
-  const isBlocked = useMultiTabPrevention()
+  const isBlockedMultiTab = useMultiTabPrevention()
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [needsPassword, setNeedsPassword] = useState(false)
   const [connectionPassword, setConnectionPassword] = useState<string | null>(
@@ -612,7 +616,7 @@ export default function GameCanvas({ room }: { room: string }) {
       })
   }, [room])
 
-  if (isBlocked) {
+  if (isBlockedMultiTab) {
     return (
       <div className="container mx-auto p-4 text-center">
         <div className="alert alert-warning shadow-lg max-w-md mx-auto mt-10">

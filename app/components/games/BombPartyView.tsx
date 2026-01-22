@@ -6,30 +6,10 @@ import {
   type Player,
   ServerMessageType,
 } from "../../../shared/types"
-import { CustomAvatar, Logo } from "../Logo"
-import { CopyIcon, EditIcon, SettingsIcon } from "../Icons"
-
-// Helper for highlighting
-function WordHighlight({
-  word,
-  highlight,
-}: {
-  word: string
-  highlight: string
-}) {
-  const index = word.toLowerCase().indexOf(highlight.toLowerCase())
-  if (index === -1) return <>{word}</>
-
-  return (
-    <>
-      {word.slice(0, index)}
-      <span className="text-primary font-bold">
-        {word.slice(index, index + highlight.length)}
-      </span>
-      {word.slice(index + highlight.length)}
-    </>
-  )
-}
+import { CustomAvatar } from "../Logo"
+import { GameHeader } from "../GameHeader"
+import { EditIcon } from "../Icons"
+import { WordHighlight } from "../WordHighlight"
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 
@@ -142,44 +122,17 @@ export default function BombPartyView({
 
   return (
     <>
-      <div className="card bg-base-100 shadow-xl p-6 text-center border border-base-300 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="btn btn-ghost btn-sm"
-          >
-            ← Lobby
-          </button>
-          <Logo name={room} />
-          <div className="w-16 flex justify-end">
-            {gameState === GameState.LOBBY && isAdmin && (
-              <button
-                className="btn btn-ghost btn-sm btn-circle"
-                onClick={onOpenSettings}
-                title="Settings"
-              >
-                <SettingsIcon />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="text-sm opacity-70 mb-4">
-          Room:{" "}
-          <button
-            className="font-mono text-lg badge badge-neutral tracking-widest hover:badge-primary transition-colors cursor-pointer gap-2 font-bold"
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
-            title="Copy room link"
-          >
-            {room.toUpperCase()}
-            <CopyIcon />
-            {password && " 🔒"}
-          </button>
-        </div>
-
+      <GameHeader
+        room={room}
+        password={password}
+        isAdmin={isAdmin}
+        gameState={gameState}
+        onOpenSettings={onOpenSettings}
+      >
         {gameState === GameState.LOBBY && (
           <div className="flex flex-col gap-4 items-center">
-            <p className="text-lg">
+            <h2 className="text-2xl font-bold">Bombparty</h2>
+            <p className="opacity-70 max-w-md">
               Welcome to booombparty! Type a word containing the letters before
               time runs out!
             </p>
@@ -299,7 +252,7 @@ export default function BombPartyView({
             <p>Returning to lobby...</p>
           </div>
         )}
-      </div>
+      </GameHeader>
 
       {/* Players Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

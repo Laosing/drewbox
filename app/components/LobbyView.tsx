@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
 import usePartySocket from "partysocket/react"
-import { Logo } from "./Logo"
+import { CustomAvatar, Logo } from "./Logo"
 import { ServerMessageType, GameMode } from "../../shared/types"
-import { host } from "../utils"
+import { getGameModeName, host } from "../utils"
 
 export default function LobbyView() {
   const [availableRooms, setAvailableRooms] = useState<
@@ -122,7 +122,7 @@ export default function LobbyView() {
               value={selectedMode}
               onChange={(e) => setSelectedMode(e.target.value as GameMode)}
             >
-              <option value={GameMode.BOMB_PARTY}>Bomb Party</option>
+              <option value={GameMode.BOMB_PARTY}>Bombparty</option>
               <option value={GameMode.WORDLE}>Wordle</option>
               <option value={GameMode.WORD_CHAIN}>Word Chain</option>
             </select>
@@ -162,13 +162,22 @@ export default function LobbyView() {
                     joinRoom(r.id, undefined, r.mode)
                   }
                 }}
-                className="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer p-4 flex flex-row justify-between items-center"
+                className="card card-side bg-base-100 shadow-sm cursor-pointer"
               >
-                <span className="font-bold truncate">{r.id}</span>
-                <div className="flex items-center gap-2">
-                  {r.isPrivate && <span>🔒</span>}
-                  <div className="badge badge-neutral">
-                    {r.players} Player{r.players !== 1 ? "s" : ""}
+                <figure>
+                  <CustomAvatar name={r.id} className="p-4 w-24 h-24" />
+                </figure>
+                <div className="card-body">
+                  <h2 className="card-title uppercase font-bold">
+                    {r.id} {r.isPrivate && <span>🔒</span>}
+                  </h2>
+                  <div className="card-actions">
+                    <div className="badge badge-primary">
+                      {r.players} Player{r.players !== 1 ? "s" : ""}
+                    </div>
+                    <div className="badge badge-primary">
+                      {getGameModeName(r.mode)}
+                    </div>
                   </div>
                 </div>
               </div>

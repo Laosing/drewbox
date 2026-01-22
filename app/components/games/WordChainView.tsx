@@ -7,8 +7,9 @@ import {
   ServerMessageType,
 } from "../../../shared/types"
 import { CustomAvatar } from "../Logo"
-import { CopyIcon, EditIcon, SettingsIcon } from "../Icons"
+import { EditIcon } from "../Icons"
 import clsx from "clsx"
+import { GameHeader } from "../GameHeader"
 
 interface WordChainViewProps {
   socket: PartySocket
@@ -114,67 +115,36 @@ export default function WordChainView({
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
       {/* Header */}
-      <div className="card bg-base-100 shadow-xl p-4 md:p-6 text-center border border-base-300">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl md:text-2xl font-black text-primary tracking-tight flex items-center gap-2">
-              Word Chain
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            {isAdmin && (
-              <button
-                className="btn btn-ghost btn-circle btn-sm"
-                onClick={onOpenSettings}
-                title="Settings"
-              >
-                <SettingsIcon />
-              </button>
-            )}
-            <button
-              className="btn btn-ghost btn-circle btn-sm"
-              onClick={onEditName}
-              title="Edit Name"
-            >
-              <EditIcon />
-            </button>
-          </div>
-        </div>
-
-        {/* Room Info */}
-        <div className="flex flex-col items-center gap-2 mb-6">
-          <div className="flex items-center gap-2 text-sm bg-base-200 px-3 py-1.5 rounded-full">
-            <span className="opacity-70">Room:</span>
-            <span className="font-mono font-bold">{room}</span>
-            <button
-              onClick={() => {
-                const url = window.location.href
-                navigator.clipboard.writeText(url)
-              }}
-              className="btn btn-ghost btn-xs btn-circle"
-              title="Copy Link"
-            >
-              <CopyIcon />
-            </button>
-          </div>
-          {password && (
-            <div className="text-xs text-base-content/60 flex items-center gap-1">
-              <span>Password:</span>
-              <span className="font-mono bg-base-200 px-1 rounded">
-                {password}
-              </span>
-            </div>
-          )}
-        </div>
+      <GameHeader
+        room={room}
+        password={password}
+        isAdmin={isAdmin}
+        gameState={gameState}
+        onOpenSettings={onOpenSettings}
+        additionalRightControls={
+          <button
+            className="btn btn-ghost btn-circle btn-sm"
+            onClick={onEditName}
+            title="Edit Name"
+          >
+            <EditIcon />
+          </button>
+        }
+      >
+        {/* Game Area wrapper end tag will need to change if structure changes */}
 
         {/* Game Area */}
         <div className="flex flex-col items-center justify-center min-h-[200px] mb-4">
           {gameState === GameState.LOBBY && (
             <div className="flex flex-col items-center gap-4">
-              <p className="text-lg">Waiting for players...</p>
+              <h2 className="text-2xl font-bold">Word Chain</h2>
+              <p className="opacity-70 max-w-md">
+                Take turns guessing a word that starts with the last letter of
+                the previous word.
+              </p>
               {isAdmin && players.length > 0 && (
                 <button
-                  className="btn btn-primary btn-lg"
+                  className="btn btn-primary btn-lg mt-4"
                   onClick={() =>
                     socket.send(
                       JSON.stringify({
@@ -286,7 +256,7 @@ export default function WordChainView({
             </div>
           )}
         </div>
-      </div>
+      </GameHeader>
 
       {/* Player List */}
       <div className="card bg-base-100 shadow-xl p-4 md:p-6 border border-base-300">
