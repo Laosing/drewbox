@@ -16,6 +16,18 @@ export default function WordChainSettings({
 
   return (
     <>
+      <ToggleInput
+        label="Enable Chat"
+        checked={settings.chatEnabled ?? true}
+        onChange={(checked) => onUpdate({ chatEnabled: checked })}
+      />
+
+      <ToggleInput
+        label="Enable Game Log"
+        checked={settings.gameLogEnabled ?? true}
+        onChange={(checked) => onUpdate({ gameLogEnabled: checked })}
+      />
+
       <NumberInput
         label="Turn Timer (seconds)"
         value={maxTimer ?? GAME_CONFIG.WORD_CHAIN.TIMER.DEFAULT}
@@ -32,20 +44,6 @@ export default function WordChainSettings({
         max={GAME_CONFIG.WORD_CHAIN.LIVES.MAX}
         onChange={(val) => onUpdate({ startingLives: val as any })}
         helperText={`Value between ${GAME_CONFIG.WORD_CHAIN.LIVES.MIN} and ${GAME_CONFIG.WORD_CHAIN.LIVES.MAX}`}
-      />
-
-      <ToggleInput
-        label="Enable Chat"
-        checked={settings.chatEnabled ?? true}
-        onChange={(checked) => onUpdate({ chatEnabled: checked })}
-        helperText="Allow players to chat during the game."
-      />
-
-      <ToggleInput
-        label="Enable Game Log"
-        checked={settings.gameLogEnabled ?? true}
-        onChange={(checked) => onUpdate({ gameLogEnabled: checked })}
-        helperText="Show game events in the log."
       />
     </>
   )

@@ -52,6 +52,7 @@ export default function BombPartyView({
     maxTimer = 10,
     startingLives = 2,
     syllableChangeThreshold = 2,
+    bonusWordLength = 2,
     dictionaryLoaded,
   } = serverState
 
@@ -144,6 +145,9 @@ export default function BombPartyView({
               </div>
               <div className="badge badge-lg badge-neutral gap-2">
                 Change syllable: {syllableChangeThreshold} tries
+              </div>
+              <div className="badge badge-lg badge-neutral gap-2">
+                Bonus letter for: {bonusWordLength}+ characters
               </div>
             </div>
 

@@ -19,10 +19,8 @@ export function NumberInput({
   helperText,
 }: NumberInputProps) {
   return (
-    <div className="form-control w-full max-w-xs mb-6">
-      <label className="label">
-        <span className="label-text font-bold">{label}</span>
-      </label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">{label}</legend>
       <input
         type="number"
         min={min}
@@ -36,14 +34,10 @@ export function NumberInput({
             onChange(parseInt(val))
           }
         }}
-        className="input input-bordered w-full max-w-xs"
+        className="input input-bordered w-full"
       />
-      {helperText && (
-        <label className="label">
-          <span className="label-text-alt opacity-70">{helperText}</span>
-        </label>
-      )}
-    </div>
+      <p className="label">{helperText}</p>
+    </fieldset>
   )
 }
 
@@ -61,21 +55,17 @@ export function ToggleInput({
   helperText,
 }: ToggleInputProps) {
   return (
-    <div className="form-control w-full max-w-xs mb-6">
-      <label className="label cursor-pointer justify-start gap-4">
-        <span className="label-text font-bold">{label}</span>
+    <fieldset className="fieldset">
+      <label className="label text-sm">
         <input
           type="checkbox"
-          className="toggle toggle-primary"
-          checked={checked}
+          defaultChecked={checked}
+          className="toggle toggle-sm"
           onChange={(e) => onChange(e.target.checked)}
         />
+        {label}
       </label>
-      {helperText && (
-        <label className="label">
-          <span className="label-text-alt opacity-60">{helperText}</span>
-        </label>
-      )}
-    </div>
+      {helperText && <p className="label">{helperText}</p>}
+    </fieldset>
   )
 }

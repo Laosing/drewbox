@@ -39,7 +39,11 @@ export default function BombPartySettings({
         value={startingLives}
         min={GAME_CONFIG.BOMB_PARTY.LIVES.MIN}
         max={GAME_CONFIG.BOMB_PARTY.LIVES.MAX}
-        onChange={(val) => onUpdate({ startingLives: val || 2 })}
+        onChange={(val) =>
+          onUpdate({
+            startingLives: val || GAME_CONFIG.BOMB_PARTY.LIVES.DEFAULT,
+          })
+        }
         helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.LIVES.MIN} and ${GAME_CONFIG.BOMB_PARTY.LIVES.MAX}`}
       />
 
@@ -48,7 +52,9 @@ export default function BombPartySettings({
         value={maxTimer}
         min={GAME_CONFIG.BOMB_PARTY.TIMER.MIN}
         max={GAME_CONFIG.BOMB_PARTY.TIMER.MAX}
-        onChange={(val) => onUpdate({ maxTimer: val || 10 })}
+        onChange={(val) =>
+          onUpdate({ maxTimer: val || GAME_CONFIG.BOMB_PARTY.TIMER.DEFAULT })
+        }
         helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.TIMER.MIN} and ${GAME_CONFIG.BOMB_PARTY.TIMER.MAX}`}
       />
 
@@ -57,7 +63,12 @@ export default function BombPartySettings({
         value={syllableChangeThreshold}
         min={GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN}
         max={GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX}
-        onChange={(val) => onUpdate({ syllableChangeThreshold: val || 1 })}
+        onChange={(val) =>
+          onUpdate({
+            syllableChangeThreshold:
+              val || GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT,
+          })
+        }
         helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN} and ${GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX}`}
       />
 
@@ -66,7 +77,11 @@ export default function BombPartySettings({
         value={bonusWordLength}
         min={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN}
         max={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}
-        onChange={(val) => onUpdate({ bonusWordLength: val || 11 })}
+        onChange={(val) =>
+          onUpdate({
+            bonusWordLength: val || GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT,
+          })
+        }
         helperText={`Length between ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN} and ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}. Determines word length required to earn a free letter.`}
       />
     </>

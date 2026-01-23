@@ -87,7 +87,7 @@ export default function LobbyView() {
           onSubmit={handleCreate}
           className="my-8 flex flex-col sm:flex-row gap-4 items-center justify-center"
         >
-          <div className="flex flex-col gap-1 w-full max-w-xs relative">
+          <div className="flex flex-col gap-1 w-full relative">
             <input
               value={newRoomName}
               onChange={(e) => {
@@ -109,7 +109,7 @@ export default function LobbyView() {
             onChange={(e) => setRoomPassword(e.target.value)}
             placeholder="Password (Optional)"
             type="password"
-            className="input input-bordered w-full max-w-xs text-center"
+            className="input input-bordered w-full text-center"
           />
           <button
             type="submit"

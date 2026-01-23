@@ -351,6 +351,11 @@ function GameCanvasInner({
               serverState.syllableChangeThreshold ??
               GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
             }
+            bonusWordLength={
+              pendingSettings.bonusWordLength ??
+              serverState.bonusWordLength ??
+              GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT
+            }
             chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
             gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
             onUpdate={handleSettingsUpdate}

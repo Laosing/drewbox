@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 
 interface ModalProps {
   id?: string
@@ -33,8 +33,8 @@ export function Modal({
           <button
             className="btn btn-primary"
             onClick={() => {
-              onActionClick?.()
               close?.()
+              setTimeout(() => onActionClick?.(), 200)
             }}
             disabled={actionDisabled}
           >
@@ -50,21 +50,21 @@ export function Modal({
 }
 
 export const useModal = (
-  id = crypto.randomUUID(),
+  id?: string,
 ): [(props: ModalProps) => ReactNode, () => void, () => void] => {
-  const idRef = useMemo(() => id, [])
+  const [modalId] = useState(() => id || crypto.randomUUID())
 
   const open = () => {
-    ;(document.getElementById(idRef) as HTMLDialogElement)?.showModal()
+    ;(document.getElementById(modalId) as HTMLDialogElement)?.showModal()
   }
 
   const close = () => {
-    ;(document.getElementById(idRef) as HTMLDialogElement)?.close()
+    ;(document.getElementById(modalId) as HTMLDialogElement)?.close()
   }
 
   const ModalComponent = useMemo(
     () => (props: ModalProps) => {
-      return <Modal id={idRef} open={open} close={close} {...props} />
+      return <Modal id={modalId} open={open} close={close} {...props} />
     },
     [],
   )
