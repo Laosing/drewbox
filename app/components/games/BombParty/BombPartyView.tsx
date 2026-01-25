@@ -5,6 +5,7 @@ import {
   GameState,
   type Player,
   ServerMessageType,
+  type BombPartyServerState,
 } from "../../../../shared/types"
 import { GameHeader } from "../../GameHeader"
 import { WordHighlight } from "../../WordHighlight"
@@ -19,7 +20,7 @@ interface BombPartyViewProps {
   gameState: GameState
   myId: string
   isAdmin: boolean
-  serverState: any // Contains game specific state like currentSyllable, timer
+  serverState: BombPartyServerState
   onKick: (playerId: string) => void
   onEditName: () => void
   onOpenSettings: () => void

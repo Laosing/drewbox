@@ -7,6 +7,7 @@ import {
   ServerMessageType,
   type Guess,
   type GuessResult,
+  type WordleServerState,
 } from "../../../../shared/types"
 import { GameHeader } from "../../GameHeader"
 import clsx from "clsx"
@@ -17,7 +18,7 @@ interface WordleViewProps {
   players: Player[]
   gameState: GameState
   isAdmin: boolean
-  serverState: any
+  serverState: WordleServerState
   onKick: (playerId: string) => void
   onEditName: () => void
   onOpenSettings: () => void

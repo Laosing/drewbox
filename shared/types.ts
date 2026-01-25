@@ -205,3 +205,42 @@ export type ClientMessage =
   | WordleClientMessage
   | BombPartyClientMessage
   | WordChainClientMessage
+
+export interface BaseServerState {
+  dictionaryLoaded: boolean
+  chatEnabled: boolean
+  gameLogEnabled: boolean
+}
+
+export interface BombPartyServerState extends BaseServerState {
+  currentSyllable: string
+  activePlayerId: string | null
+  timer: number
+  maxTimer: number
+  startingLives: number
+  syllableChangeThreshold: number
+  bonusWordLength: number
+  hardModeStartRound: number
+  round: number
+  winnerId: string | null
+}
+
+export interface WordleServerState extends BaseServerState {
+  guesses: Guess[]
+  activePlayerId: string | null
+  winnerId: string | null
+  timer: number
+  maxTimer: number
+  maxAttempts: number
+  wordLength: number
+}
+
+export interface WordChainServerState extends BaseServerState {
+  currentWord: string
+  activePlayerId: string | null
+  timer: number
+  maxTimer: number
+  startingLives: number
+  usedWordsCount: number
+  winnerId: string | null
+}

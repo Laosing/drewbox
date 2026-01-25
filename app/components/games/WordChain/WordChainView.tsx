@@ -5,8 +5,8 @@ import {
   GameState,
   type Player,
   ServerMessageType,
+  type WordChainServerState,
 } from "../../../../shared/types"
-import { EditIcon } from "../../Icons"
 import clsx from "clsx"
 import { GameHeader } from "../../GameHeader"
 import PartySocket from "partysocket"
@@ -17,7 +17,7 @@ interface WordChainViewProps {
   players: Player[]
   gameState: GameState
   isAdmin: boolean
-  serverState: any
+  serverState: WordChainServerState
   onKick: (playerId: string) => void
   onEditName: () => void
   onOpenSettings: () => void
