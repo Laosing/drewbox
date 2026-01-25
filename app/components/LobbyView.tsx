@@ -95,14 +95,14 @@ export default function LobbyView() {
                   setNewRoomName(e.target.value.substring(0, 4))
                 }}
                 placeholder="Room (4 chars)"
-                className=""
+                className="uppercase placeholder:capitalize placeholder:tracking-normal tracking-widest"
                 maxLength={4}
                 minLength={4}
                 required
                 pattern="[a-z]{4}"
               />
             </label>
-            <p className="validator-hint">Must be 4 characters</p>
+            <p className="validator-hint">Must be 4 letters</p>
           </div>
 
           <div>
