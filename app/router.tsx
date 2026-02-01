@@ -7,6 +7,7 @@ import {
   redirect,
 } from "@tanstack/react-router"
 import { ThemeBackground } from "./components/ThemeController"
+import { ErrorCard } from "./components/ErrorCard"
 
 // Lazy Components
 const LobbyView = lazy(() => import("./components/LobbyView"))
@@ -28,6 +29,12 @@ const rootRoute = createRootRoute({
     <Suspense fallback={null}>
       <NotFound />
     </Suspense>
+  ),
+  errorComponent: () => (
+    <ErrorCard
+      message="We are having some issues, please try again later."
+      title="Something went wrong"
+    />
   ),
 })
 
@@ -94,14 +101,6 @@ const gameRoute = createRoute({
       </Suspense>
     )
   },
-  errorComponent: () => (
-    <div className="flex items-center justify-center min-h-screen flex-col gap-4">
-      <h2 className="text-2xl font-bold">Failed to load game</h2>
-      <a href="/" className="btn btn-primary">
-        Return to Lobby
-      </a>
-    </div>
-  ),
 })
 
 // 4. Create the Route Tree

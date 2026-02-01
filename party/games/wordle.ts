@@ -204,6 +204,10 @@ export class WordleGame extends BaseGame {
     })
 
     if (this.guesses.length >= this.maxAttempts) {
+      this.broadcast({
+        type: ServerMessageType.SYSTEM_MESSAGE,
+        message: "Max attempts reached! Game Over.",
+      })
       this.endGame(null)
     } else {
       this.nextTurn()
@@ -311,6 +315,10 @@ export class WordleGame extends BaseGame {
       }
       this.endGame(playerId)
     } else if (this.guesses.length >= this.maxAttempts) {
+      this.broadcast({
+        type: ServerMessageType.SYSTEM_MESSAGE,
+        message: "Max attempts reached! Game Over.",
+      })
       this.endGame(null)
     } else {
       this.nextTurn()
@@ -338,7 +346,7 @@ export class WordleGame extends BaseGame {
       maxTimer: this.maxTimer,
       maxAttempts: this.maxAttempts,
       wordLength:
-        this.targetWord && this.targetWord.length > 0
+        this.server.gameState === GameState.PLAYING && this.targetWord
           ? this.targetWord.length
           : this.wordLength,
       chatEnabled: this.chatEnabled,

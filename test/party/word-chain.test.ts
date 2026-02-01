@@ -257,4 +257,61 @@ describe("Word Chain Game Logic", () => {
       expect(game.minLength).toBe(4)
     })
   })
+
+  it("should broadcast invalid word reason to all players", async () => {
+    const p1 = await joinPlayer("p1")
+    const p2 = await joinPlayer("p2")
+    const game = new WordChainGame(server)
+    server.activeGame = game
+    game.requestStartGame("p1")
+    game.activePlayerId = "p1" // Force p1 to be active for test stability
+    game.currentWord = "TEST" // Last char T
+
+    // P1 (active) sends invalid word (Wrong Start Letter)
+    // Should be T... but sends APPLE
+    game.updateTyping("p1", "A")
+    game.updateTyping("p1", "AP")
+    game.submitWord("p1", "APPLE")
+
+    // P2 should receive the error
+    expect(p2.send).toHaveBeenCalledWith(
+      expect.stringContaining("Must start with 'T'!"),
+    )
+    // P1 should also receive it
+    expect(p1.send).toHaveBeenCalledWith(
+      expect.stringContaining("Must start with 'T'!"),
+    )
+  })
+
+  it("should track last turn word for players", async () => {
+    const p1 = await joinPlayer("p1")
+    const game = new WordChainGame(server)
+    server.activeGame = game
+    game.requestStartGame("p1")
+    game.activePlayerId = "p1"
+    game.currentWord = "TEST"
+
+    // P1 plays TIGER
+    game.updateTyping("p1", "T")
+    game.updateTyping("p1", "TI")
+    game.submitWord("p1", "TIGER")
+
+    const player = server.players.get("p1")
+    expect(player?.lastTurn).toEqual({
+      word: "TIGER",
+      syllable: "T",
+    })
+  })
+
+  it("should select a valid starting player from participants", async () => {
+    await joinPlayer("p1")
+    await joinPlayer("p2")
+    await joinPlayer("p3")
+
+    const game = new WordChainGame(server)
+    server.activeGame = game
+    game.requestStartGame("p1")
+
+    expect(["p1", "p2", "p3"]).toContain(game.activePlayerId)
+  })
 })

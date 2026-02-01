@@ -19,11 +19,14 @@ vi.mock("../../party/dictionary", () => ({
     load = vi.fn().mockResolvedValue({ success: true })
     // Simple mock dictionary
     isWordValid = vi.fn().mockImplementation((word: string) => {
-      return ["APPLE", "ALERT", "ADAPT", "ABUSE", "ARGUE"].includes(
+      return ["APPLE", "ALERT", "ADAPT", "ABUSE", "ARGUE", "BANANA"].includes(
         word.toUpperCase(),
       )
     })
-    getRandomWord = vi.fn().mockReturnValue("APPLE") // Fixed target for stability
+    getRandomWord = vi.fn().mockImplementation((len: number) => {
+      if (len === 6) return "BANANA"
+      return "APPLE"
+    })
   },
 }))
 
@@ -172,5 +175,91 @@ describe("Wordle Game Logic", () => {
     game.updateSettings("p2", { maxTimer: 999 })
 
     expect(game.maxTimer).toBe(originalMaxTimer)
+  })
+
+  it("should show new word length setting in getState when game is ended", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    server.activeGame = game
+    server.gameState = GameState.ENDED
+    game.winnerId = "host"
+    game.targetWord = "APPLE" // Previous game was 5 letters
+    game.wordLength = 5
+
+    // Initial check: Should return 5 because targetWord is 5 (and setting matches)
+    expect(game.getState().wordLength).toBe(5)
+
+    // Update settings to 6
+    game.updateSettings("host", { wordLength: 6 })
+
+    // Verify setting is updated
+    expect(game.wordLength).toBe(6)
+
+    // Verify getState returns 6 (Configured Length) even though targetWord is 5
+    // This was the bug: it used to return 5
+    expect(game.getState().wordLength).toBe(6)
+
+    // Start new game
+    game.requestStartGame("host", false) // reuseWord = false
+
+    // Should pick 6 letter word
+    expect(game.targetWord).toBe("BANANA")
+    expect(game.getState().wordLength).toBe(6)
+    expect(game.getState().wordLength).toBe(6)
+  })
+
+  it("should clear guesses when starting a new game (regression check)", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    server.activeGame = game
+    server.gameState = GameState.ENDED
+    game.maxAttempts = 5
+
+    // Simulate a previous game with many guesses
+    game.guesses = [
+      {
+        playerId: "host",
+        word: "GUESS",
+        results: [],
+        timestamp: Date.now(),
+      },
+      {
+        playerId: "host",
+        word: "GUESS",
+        results: [],
+        timestamp: Date.now(),
+      },
+      {
+        playerId: "host",
+        word: "GUESS",
+        results: [],
+        timestamp: Date.now(),
+      },
+      {
+        playerId: "host",
+        word: "GUESS",
+        results: [],
+        timestamp: Date.now(),
+      },
+      {
+        playerId: "host",
+        word: "GUESS",
+        results: [],
+        timestamp: Date.now(),
+      },
+    ]
+
+    // Start New Game
+    game.requestStartGame("host", false)
+
+    expect(game.guesses.length).toBe(0)
+    expect(server.gameState).toBe(GameState.PLAYING)
+
+    // Make 1 wrong guess
+    game.submitWord("host", "ABUSE") // Wrong word
+    expect(game.guesses.length).toBe(1)
+
+    // Should STILL be playing (maxAttempts is 5, we have 1)
+    expect(server.gameState).toBe(GameState.PLAYING)
   })
 })

@@ -11,6 +11,7 @@ import clsx from "clsx"
 import { GameHeader } from "../GameHeader"
 import PartySocket from "partysocket"
 import { PlayerCard } from "../PlayerCard"
+import { WordHighlight } from "../WordHighlight"
 import { LobbyGameSettingsBadges } from "../LobbyGameSettingsBadges"
 
 interface WordChainViewProps {
@@ -289,9 +290,21 @@ export default function WordChainView({
             isActive={
               gameState === GameState.PLAYING && p.id === activePlayerId
             }
+            isPlaying={gameState === GameState.PLAYING}
             onKick={onKick}
             onEditName={onEditName}
-          />
+          >
+            {p.lastTurn && (
+              <div className="text-xs opacity-60 mt-1">
+                <span className="text-base-content/80 font-medium">
+                  <WordHighlight
+                    word={p.lastTurn.word}
+                    highlight={p.lastTurn.syllable}
+                  />
+                </span>
+              </div>
+            )}
+          </PlayerCard>
         ))}
       </div>
     </div>

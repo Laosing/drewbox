@@ -237,7 +237,8 @@ export class WordChainGame extends BaseGame {
     // Solo play continues until death (alivePlayers < 1)
 
     if (isFirst) {
-      this.activePlayerId = alivePlayers[0].id
+      const randomIndex = Math.floor(Math.random() * alivePlayers.length)
+      this.activePlayerId = alivePlayers[randomIndex].id
     } else if (this.activePlayerId) {
       // Actually need to rotate through currently alive players
       const aliveIds = alivePlayers.map((p) => p.id)
@@ -289,7 +290,7 @@ export class WordChainGame extends BaseGame {
     const lastCharOfCurrent = this.currentWord.slice(-1).toUpperCase()
 
     if (!upper.startsWith(lastCharOfCurrent)) {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: `Must start with '${lastCharOfCurrent}'!`,
         hide: true,
@@ -298,7 +299,7 @@ export class WordChainGame extends BaseGame {
     }
 
     if (this.usedWords.has(upper)) {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Word already used!",
         hide: true,
@@ -307,7 +308,7 @@ export class WordChainGame extends BaseGame {
     }
 
     if (!this.server.dictionary.isWordValid(upper)) {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Not in dictionary!",
         hide: true,
@@ -316,7 +317,7 @@ export class WordChainGame extends BaseGame {
     }
 
     if (upper.length < this.minLength) {
-      this.sendTo(playerId, {
+      this.broadcast({
         type: ServerMessageType.ERROR,
         message: `Word must be at least ${this.minLength} letters!`,
         hide: true,
@@ -331,6 +332,15 @@ export class WordChainGame extends BaseGame {
     // Bonus for long words?
 
     const player = this.players.get(playerId)
+    if (player) {
+      // Track last turn for UI
+      // For Word Chain, the "syllable" concept is basically the starting letter (the link)
+      player.lastTurn = {
+        word: upper,
+        syllable: upper.charAt(0),
+      }
+    }
+
     this.broadcast({
       type: ServerMessageType.VALID_WORD,
       word: upper,
