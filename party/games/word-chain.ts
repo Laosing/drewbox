@@ -171,6 +171,43 @@ export class WordChainGame extends BaseGame {
     }
   }
 
+  onPlayerLeave(playerId: string): void {
+    if (
+      this.server.gameState === GameState.PLAYING &&
+      this.activePlayerId === playerId
+    ) {
+      this.broadcast({
+        type: ServerMessageType.SYSTEM_MESSAGE,
+        message: "Active player left! Passing turn...",
+      })
+
+      // Check win condition first, as the leaving player might have been the last one standing
+      // (The GameServer class removes the player from the map before calling this)
+      const alivePlayers = Array.from(this.players.values()).filter(
+        (p) => p.isAlive,
+      )
+
+      if (alivePlayers.length <= 1 && this.server.initialAliveCount > 1) {
+        this.nextTurn() // This triggers win check
+      } else if (alivePlayers.length === 0) {
+        this.endGame(null)
+      } else {
+        this.nextTurn()
+      }
+    } else {
+      // If a regular player leaves, we should also check if that triggers a win
+      // e.g. everyone left except one
+      const alivePlayers = Array.from(this.players.values()).filter(
+        (p) => p.isAlive,
+      )
+      if (alivePlayers.length <= 1 && this.server.initialAliveCount > 1) {
+        // If we are left with 1 survivor, nextTurn logic handles declaring winner?
+        // nextTurn checks `alivePlayers`
+        this.nextTurn()
+      }
+    }
+  }
+
   startLoop() {
     if (this.tickInterval) clearTimeout(this.tickInterval)
     this.nextTickTime = Date.now() + 1000
@@ -228,7 +265,7 @@ export class WordChainGame extends BaseGame {
     }
 
     // Multiplayer Win: Last player standing
-    if (this.players.size > 1 && alivePlayers.length === 1) {
+    if (this.server.initialAliveCount > 1 && alivePlayers.length === 1) {
       alivePlayers[0].wins++
       this.endGame(alivePlayers[0].id)
       return
@@ -243,7 +280,12 @@ export class WordChainGame extends BaseGame {
       // Actually need to rotate through currently alive players
       const aliveIds = alivePlayers.map((p) => p.id)
       const currentIndex = aliveIds.indexOf(this.activePlayerId)
-      let nextIndex = (currentIndex + 1) % aliveIds.length
+
+      // If active player left or not found, start from 0
+      let nextIndex = 0
+      if (currentIndex !== -1) {
+        nextIndex = (currentIndex + 1) % aliveIds.length
+      }
 
       this.activePlayerId = aliveIds[nextIndex]
     } else {
