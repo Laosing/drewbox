@@ -23,9 +23,6 @@ export class WordChainGame extends BaseGame {
   round: number = 1
   minLength: number = 3
 
-  private tickInterval: ReturnType<typeof setTimeout> | null = null
-  private nextTickTime: number = 0
-
   constructor(server: any) {
     super(server)
   }
@@ -63,7 +60,7 @@ export class WordChainGame extends BaseGame {
     }
     this.usedWords.add(this.currentWord)
 
-    this.startLoop()
+    this.gameTimer.start()
     this.nextTurn(true)
 
     this.broadcast({
@@ -206,24 +203,6 @@ export class WordChainGame extends BaseGame {
         this.nextTurn()
       }
     }
-  }
-
-  startLoop() {
-    if (this.tickInterval) clearTimeout(this.tickInterval)
-    this.nextTickTime = Date.now() + 1000
-    this.tickInterval = setTimeout(() => this.loopStep(), 1000)
-  }
-
-  loopStep() {
-    if (this.server.gameState !== GameState.PLAYING) return
-    const now = Date.now()
-    if (now - this.nextTickTime > 1000) this.nextTickTime = now
-
-    this.onTick()
-
-    this.nextTickTime += 1000
-    const delay = Math.max(0, this.nextTickTime - Date.now())
-    this.tickInterval = setTimeout(() => this.loopStep(), delay)
   }
 
   handleTimeout() {
@@ -399,7 +378,7 @@ export class WordChainGame extends BaseGame {
   endGame(winnerId?: string | null) {
     this.server.gameState = GameState.ENDED
     this.winnerId = winnerId || null
-    if (this.tickInterval) clearTimeout(this.tickInterval)
+    this.gameTimer.stop()
     this.broadcast({
       type: ServerMessageType.GAME_OVER,
       winnerId,

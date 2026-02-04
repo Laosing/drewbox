@@ -12,6 +12,7 @@ import {
   GAME_CONFIG,
 } from "../../shared/types"
 import { WordleGame } from "../../party/games/wordle"
+import { AntiBotProtection } from "../../party/anti-bot"
 
 // Mock DictionaryManager
 vi.mock("../../party/dictionary", () => ({
@@ -59,6 +60,10 @@ describe("Wordle Game Logic", () => {
     await joinPlayer("host")
 
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     game.requestStartGame("host")
 
@@ -77,6 +82,10 @@ describe("Wordle Game Logic", () => {
   it("should handle valid guesses and updates state", async () => {
     await joinPlayer("host")
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     game.requestStartGame("host")
 
@@ -101,6 +110,10 @@ describe("Wordle Game Logic", () => {
   it("should reject invalid dictionary words", async () => {
     const host = await joinPlayer("host")
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     game.requestStartGame("host")
 
@@ -115,6 +128,10 @@ describe("Wordle Game Logic", () => {
   it("should detect win condition", async () => {
     await joinPlayer("host")
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     game.requestStartGame("host")
 
@@ -127,6 +144,10 @@ describe("Wordle Game Logic", () => {
   it("should end game on max attempts", async () => {
     await joinPlayer("host")
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     game.requestStartGame("host")
 
@@ -211,6 +232,10 @@ describe("Wordle Game Logic", () => {
   it("should clear guesses when starting a new game (regression check)", async () => {
     await joinPlayer("host")
     const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
     server.activeGame = game
     server.gameState = GameState.ENDED
     game.maxAttempts = 5

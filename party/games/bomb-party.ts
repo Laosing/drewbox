@@ -29,9 +29,6 @@ export class BombPartyGame extends BaseGame {
 
   turnStartTime: number = 0
 
-  private tickInterval: ReturnType<typeof setTimeout> | null = null
-  private nextTickTime: number = 0
-
   constructor(server: any) {
     super(server)
     // Initialize defaults
@@ -63,7 +60,7 @@ export class BombPartyGame extends BaseGame {
       p.lastTurn = undefined
     }
 
-    this.startLoop()
+    this.gameTimer.start()
     this.nextTurn(true)
 
     this.broadcast({
@@ -110,28 +107,6 @@ export class BombPartyGame extends BaseGame {
       // If a non-active player left, we still check win condition (e.g. if they were the only other survivor)
       this.checkWinCondition()
     }
-  }
-
-  startLoop() {
-    if (this.tickInterval) clearTimeout(this.tickInterval)
-    this.nextTickTime = Date.now() + 1000
-    this.tickInterval = setTimeout(() => this.loopStep(), 1000)
-  }
-
-  loopStep() {
-    if (this.server.gameState !== GameState.PLAYING) return
-
-    const now = Date.now()
-    const drift = now - this.nextTickTime
-    if (drift > 1000) {
-      this.nextTickTime = now
-    }
-
-    this.onTick()
-
-    this.nextTickTime += 1000
-    const delay = Math.max(0, this.nextTickTime - Date.now())
-    this.tickInterval = setTimeout(() => this.loopStep(), delay)
   }
 
   handleExplosion() {
@@ -255,7 +230,7 @@ export class BombPartyGame extends BaseGame {
   endGame(winnerId?: string | null) {
     this.server.gameState = GameState.ENDED
     this.winnerId = winnerId || null
-    if (this.tickInterval) clearTimeout(this.tickInterval)
+    this.gameTimer.stop()
     this.broadcast({ type: ServerMessageType.GAME_OVER, winnerId })
 
     if (winnerId) {

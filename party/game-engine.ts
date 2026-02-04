@@ -2,6 +2,7 @@ import type * as Party from "partykit/server"
 import type { Player } from "../shared/types"
 import type Server from "./server"
 import { AntiBotProtection } from "./anti-bot"
+import { GameTimer } from "./game-timer"
 
 export interface GameEngine {
   // Lifecycle
@@ -24,9 +25,11 @@ export abstract class BaseGame implements GameEngine {
   protected server: Server
   public chatEnabled: boolean = true
   public gameLogEnabled: boolean = true
+  public gameTimer: GameTimer
 
   constructor(server: Server) {
     this.server = server
+    this.gameTimer = new GameTimer(() => this.onTick())
   }
 
   abstract onStart(): void

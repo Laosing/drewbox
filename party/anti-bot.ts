@@ -61,11 +61,13 @@ export class AntiBotProtection {
     }
 
     // 2. Typing Heuristic Check
-    const stats = this.typingStats.get(playerId)
-    if (!stats || stats.count < this.config.minTypingEvents) {
-      return {
-        isValid: false,
-        reason: "Suspicious activity detected. Please type your words.",
+    if (this.config.minTypingEvents > 0) {
+      const stats = this.typingStats.get(playerId)
+      if (!stats || stats.count < this.config.minTypingEvents) {
+        return {
+          isValid: false,
+          reason: "Suspicious activity detected. Please type your words.",
+        }
       }
     }
 
