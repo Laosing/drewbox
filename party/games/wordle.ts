@@ -132,6 +132,7 @@ export class WordleGame extends BaseGame {
       this.server.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
+      this.antiBot.trackTyping(playerId)
       this.broadcast({
         type: ServerMessageType.TYPING_UPDATE,
         text: text,
@@ -251,6 +252,10 @@ export class WordleGame extends BaseGame {
       this.activePlayerId = playerIds[0]
     }
 
+    if (this.activePlayerId) {
+      this.antiBot.clearTyping(this.activePlayerId)
+    }
+
     this.timer = this.maxTimer
     this.turnStartTime = Date.now()
     this.server.broadcastState()
@@ -259,6 +264,16 @@ export class WordleGame extends BaseGame {
   handleGuess(playerId: string, word: string) {
     const upperWord = word.toUpperCase().trim()
     const targetLen = this.targetWord.length
+
+    // Bot Check
+    const botCheck = this.antiBot.validateAction(playerId, this.turnStartTime)
+    if (!botCheck.isValid) {
+      this.broadcast({
+        type: ServerMessageType.ERROR,
+        message: botCheck.reason || "Suspicious activity detected.",
+      })
+      return
+    }
 
     if (upperWord.length !== targetLen) return
 
