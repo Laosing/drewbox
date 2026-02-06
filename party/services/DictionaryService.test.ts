@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { DictionaryManager } from "../../party/dictionary"
+import { DictionaryService } from "./DictionaryService"
 
 // We need to reset the module to clear SHARED_WORDS singleton between tests
 // However, since it's a top-level variable in the module, standard vi.resetModules() might be needed.
 
-describe("DictionaryManager", () => {
+describe("DictionaryService", () => {
   beforeEach(() => {
-    DictionaryManager._reset()
+    DictionaryService._reset()
   })
 
   afterEach(() => {
@@ -14,7 +14,7 @@ describe("DictionaryManager", () => {
   })
 
   it("should fail validation if not loaded", () => {
-    const dict = new DictionaryManager()
+    const dict = new DictionaryService()
     const result = dict.isValid("TEST", "TE")
     expect(result.valid).toBe(false)
     expect(result.reason).toBe("Dictionary loading...")
@@ -29,7 +29,7 @@ describe("DictionaryManager", () => {
       body: null, // force fallback to text() path
     } as Response)
 
-    const dict = new DictionaryManager()
+    const dict = new DictionaryService()
     const result = await dict.load("http://localhost")
 
     expect(result.success).toBe(true)
@@ -41,7 +41,7 @@ describe("DictionaryManager", () => {
   })
 
   it("should validate words and syllables correctly", async () => {
-    const dict = new DictionaryManager()
+    const dict = new DictionaryService()
 
     const mockText = "TEST\nTESTING\nTOAST"
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
@@ -72,7 +72,7 @@ describe("DictionaryManager", () => {
   })
 
   it("should generate random syllables", async () => {
-    const dict = new DictionaryManager()
+    const dict = new DictionaryService()
 
     // Create enough words to ensure we find a syllable
     const mockWords = [
@@ -98,7 +98,7 @@ describe("DictionaryManager", () => {
   })
 
   it("should generate random word of specific length", async () => {
-    const dict = new DictionaryManager()
+    const dict = new DictionaryService()
 
     const mockWords = ["CAT", "DOG", "BIRD", "FISH"].join("\n")
     vi.spyOn(globalThis, "fetch").mockResolvedValue({

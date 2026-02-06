@@ -1,21 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import Server from "../../party/server"
+import Server from "../server"
 import {
   MockRoom,
   MockConnection,
   createMockConnectionContext,
-} from "../mocks/party"
+} from "../../test/mocks/party"
 import {
   GameState,
   GameMode,
   ServerMessageType,
   GAME_CONFIG,
 } from "../../shared/types"
-import { WordChainGame } from "../../party/games/word-chain"
+import { WordChainGame } from "./WordChainGame"
 
-// Mock DictionaryManager
-vi.mock("../../party/dictionary", () => ({
-  DictionaryManager: class {
+// Mock DictionaryService
+vi.mock("../services/DictionaryService", () => ({
+  DictionaryService: class {
     load = vi.fn().mockResolvedValue({ success: true })
     isWordValid = vi.fn().mockReturnValue(true)
     getRandomWord = vi.fn().mockReturnValue("START")
@@ -53,7 +53,7 @@ describe("Word Chain Game Logic", () => {
 
     // Direct instantiation and method calling for simpler testing
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
 
     // Action
     game.requestStartGame("host")
@@ -66,7 +66,7 @@ describe("Word Chain Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     game.currentWord = "TEST"
@@ -92,7 +92,7 @@ describe("Word Chain Game Logic", () => {
   it("should reject invalid start letter", async () => {
     await joinPlayer("host")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     game.currentWord = "TEST"
@@ -112,7 +112,7 @@ describe("Word Chain Game Logic", () => {
   it("should reject repeated word", async () => {
     await joinPlayer("host")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     game.currentWord = "TEST"
@@ -134,7 +134,7 @@ describe("Word Chain Game Logic", () => {
   it("should update settings when admin requests", async () => {
     const host = await joinPlayer("host")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
 
     const newSettings = {
       maxTimer: 45,
@@ -153,7 +153,7 @@ describe("Word Chain Game Logic", () => {
     await joinPlayer("host")
     const p2 = await joinPlayer("p2")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
 
     // Ensure p2 is not admin
     expect(server.players.get("p2")?.isAdmin).toBe(false)
@@ -170,7 +170,7 @@ describe("Word Chain Game Logic", () => {
     it("should initialize with default hard mode settings", async () => {
       await joinPlayer("host")
       const game = new WordChainGame(server)
-      server.activeGame = game
+      server.roomService.activeGame = game
 
       game.requestStartGame("host")
 
@@ -184,7 +184,7 @@ describe("Word Chain Game Logic", () => {
     it("should reject words shorter than minLength", async () => {
       await joinPlayer("host")
       const game = new WordChainGame(server)
-      server.activeGame = game
+      server.roomService.activeGame = game
       game.requestStartGame("host")
 
       game.minLength = 5
@@ -208,7 +208,7 @@ describe("Word Chain Game Logic", () => {
       const p2 = await joinPlayer("p2")
 
       const game = new WordChainGame(server)
-      server.activeGame = game
+      server.roomService.activeGame = game
       game.requestStartGame("p1")
 
       game.currentWord = "START"
@@ -242,7 +242,7 @@ describe("Word Chain Game Logic", () => {
     it("should increase minLength when hard mode threshold is reached", async () => {
       const p1 = await joinPlayer("p1")
       const game = new WordChainGame(server)
-      server.activeGame = game
+      server.roomService.activeGame = game
       game.requestStartGame("p1")
 
       game.hardModeStartRound = 2
@@ -262,7 +262,7 @@ describe("Word Chain Game Logic", () => {
     const p1 = await joinPlayer("p1")
     const p2 = await joinPlayer("p2")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("p1")
     game.activePlayerId = "p1" // Force p1 to be active for test stability
     game.currentWord = "TEST" // Last char T
@@ -286,7 +286,7 @@ describe("Word Chain Game Logic", () => {
   it("should track last turn word for players", async () => {
     const p1 = await joinPlayer("p1")
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("p1")
     game.activePlayerId = "p1"
     game.currentWord = "TEST"
@@ -309,7 +309,7 @@ describe("Word Chain Game Logic", () => {
     await joinPlayer("p3")
 
     const game = new WordChainGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("p1")
 
     expect(["p1", "p2", "p3"]).toContain(game.activePlayerId)

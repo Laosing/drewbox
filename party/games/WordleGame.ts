@@ -1,4 +1,4 @@
-import { BaseGame } from "../game-engine"
+import { BaseGame } from "../core/BaseGame"
 import {
   WordleClientMessageType,
   WordleSettingsSchema,
@@ -25,13 +25,13 @@ export class WordleGame extends BaseGame {
   maxAttempts: number = GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT
   wordLength: number = GAME_CONFIG.WORDLE.LENGTH.DEFAULT
 
-  constructor(server: any) {
-    super(server)
+  constructor(context: any) {
+    super(context)
   }
 
   onStart(reuseWord: boolean = false): void {
     if (this.players.size < 1) return
-    if (!this.server.dictionaryReady) {
+    if (!this.context.dictionaryReady) {
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Dictionary not loaded!",
@@ -39,7 +39,7 @@ export class WordleGame extends BaseGame {
       return
     }
 
-    this.server.gameState = GameState.PLAYING
+    this.context.gameState = GameState.PLAYING
     this.winnerId = null
     this.guesses = []
 
@@ -51,7 +51,7 @@ export class WordleGame extends BaseGame {
     // Pick target word
     if (!reuseWord || !this.targetWord) {
       try {
-        this.targetWord = this.server.dictionary.getRandomWord(this.wordLength)
+        this.targetWord = this.context.dictionary.getRandomWord(this.wordLength)
       } catch (e) {
         this.broadcast({
           type: ServerMessageType.ERROR,
@@ -101,8 +101,8 @@ export class WordleGame extends BaseGame {
     const player = this.players.get(playerId)
     if (
       player?.isAdmin &&
-      (this.server.gameState === GameState.LOBBY ||
-        this.server.gameState === GameState.ENDED)
+      (this.context.gameState === GameState.LOBBY ||
+        this.context.gameState === GameState.ENDED)
     ) {
       this.onStart(reuseWord)
     }
@@ -110,14 +110,14 @@ export class WordleGame extends BaseGame {
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.server.gameState === GameState.PLAYING) {
+    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
       this.endGame()
     }
   }
 
   public submitWord(playerId: string, word: string) {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
       this.handleGuess(playerId, word)
@@ -126,7 +126,7 @@ export class WordleGame extends BaseGame {
 
   public updateTyping(playerId: string, text: string) {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
       this.antiBot.trackTyping(playerId)
@@ -150,12 +150,12 @@ export class WordleGame extends BaseGame {
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
       if (s.gameLogEnabled !== undefined) this.gameLogEnabled = s.gameLogEnabled
 
-      this.server.broadcastState()
+      this.context.broadcastState()
     }
   }
 
   onTick(): void {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     this.timer -= 1
     this.broadcast({ type: ServerMessageType.STATE_UPDATE, timer: this.timer })
@@ -194,7 +194,7 @@ export class WordleGame extends BaseGame {
 
   onPlayerJoin(player: any) {
     // If game is playing, mark new player as not alive (spectator) for this round
-    if (this.server.gameState === GameState.PLAYING) {
+    if (this.context.gameState === GameState.PLAYING) {
       player.isAlive = false
       this.sendTo(player.id, {
         type: ServerMessageType.SYSTEM_MESSAGE,
@@ -206,7 +206,7 @@ export class WordleGame extends BaseGame {
   }
 
   nextTurn(isFirst: boolean = false) {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     // Only include players who were present at start (isAlive)
     const playerIds = Array.from(this.players.values())
@@ -235,7 +235,7 @@ export class WordleGame extends BaseGame {
 
     this.timer = this.maxTimer
     this.turnStartTime = Date.now()
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   handleGuess(playerId: string, word: string) {
@@ -254,7 +254,7 @@ export class WordleGame extends BaseGame {
 
     if (upperWord.length !== targetLen) return
 
-    if (!this.server.dictionary.isWordValid(upperWord)) {
+    if (!this.context.dictionary.isWordValid(upperWord)) {
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Not in my dictionary!",
@@ -318,7 +318,7 @@ export class WordleGame extends BaseGame {
   }
 
   endGame(winnerId?: string | null) {
-    this.server.gameState = GameState.ENDED
+    this.context.gameState = GameState.ENDED
     this.winnerId = winnerId // Save winner for state sync
     this.gameTimer.stop()
     this.broadcast({
@@ -326,7 +326,7 @@ export class WordleGame extends BaseGame {
       winnerId,
       message: `The word was ${this.targetWord}`,
     })
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   getState(): Record<string, any> {
@@ -338,7 +338,7 @@ export class WordleGame extends BaseGame {
       maxTimer: this.maxTimer,
       maxAttempts: this.maxAttempts,
       wordLength:
-        this.server.gameState === GameState.PLAYING && this.targetWord
+        this.context.gameState === GameState.PLAYING && this.targetWord
           ? this.targetWord.length
           : this.wordLength,
       chatEnabled: this.chatEnabled,

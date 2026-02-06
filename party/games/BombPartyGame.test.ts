@@ -1,21 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import Server from "../../party/server"
+import Server from "../server"
 import {
   MockRoom,
   MockConnection,
   createMockConnectionContext,
-} from "../mocks/party"
+} from "../../test/mocks/party"
 import {
   GameState,
   GameMode,
   ServerMessageType,
   GAME_CONFIG,
 } from "../../shared/types"
-import { BombPartyGame } from "../../party/games/bomb-party"
+import { BombPartyGame } from "./BombPartyGame"
 
-// Mock DictionaryManager
-vi.mock("../../party/dictionary", () => ({
-  DictionaryManager: class {
+// Mock DictionaryService
+// Mock DictionaryService
+vi.mock("../services/DictionaryService", () => ({
+  DictionaryService: class {
     load = vi.fn().mockResolvedValue({ success: true })
     // isValid returns true if word contains syllable 'SYL'
     isValid = vi.fn().mockImplementation((word: string, syllable: string) => {
@@ -69,8 +70,8 @@ describe("Bomb Party Game Logic", () => {
     expect(server.gameState).toBe(GameState.LOBBY)
 
     // Manual start
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
 
     expect(server.gameState).toBe(GameState.PLAYING)
@@ -102,8 +103,8 @@ describe("Bomb Party Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
 
     const activeId = game.activePlayerId!
@@ -141,8 +142,8 @@ describe("Bomb Party Game Logic", () => {
   it("should reject invalid word (missing syllable)", async () => {
     const host = await joinPlayer("host")
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
 
     const activeId = game.activePlayerId!
@@ -168,8 +169,8 @@ describe("Bomb Party Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2") // Add second player so turn can rotate
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
     const activeId = game.activePlayerId!
     const player = server.players.get(activeId)!
@@ -187,8 +188,8 @@ describe("Bomb Party Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
 
     // Kill p2
@@ -208,8 +209,8 @@ describe("Bomb Party Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
     const activeId = game.activePlayerId!
     const activeConn = room.connections.get(activeId)
@@ -243,8 +244,8 @@ describe("Bomb Party Game Logic", () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
 
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
 
     // Setup Hard Mode start
@@ -266,8 +267,8 @@ describe("Bomb Party Game Logic", () => {
 
   it("should update settings when admin requests", async () => {
     const host = await joinPlayer("host")
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
 
     const newSettings = {
       maxTimer: 45,
@@ -287,8 +288,8 @@ describe("Bomb Party Game Logic", () => {
   it("should ignore settings update from non-admin", async () => {
     await joinPlayer("host")
     await joinPlayer("p2")
-    server.activeGame = new BombPartyGame(server)
-    const game = server.activeGame as BombPartyGame
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
 
     // Ensure p2 is not admin
     expect(server.players.get("p2")?.isAdmin).toBe(false)

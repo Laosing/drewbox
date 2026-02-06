@@ -1,22 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import Server from "../../party/server"
+import Server from "../server"
 import {
   MockRoom,
   MockConnection,
   createMockConnectionContext,
-} from "../mocks/party"
+} from "../../test/mocks/party"
 import {
   GameState,
   GameMode,
   ServerMessageType,
   GAME_CONFIG,
 } from "../../shared/types"
-import { WordleGame } from "../../party/games/wordle"
-import { AntiBotProtection } from "../../party/anti-bot"
+import { WordleGame } from "./WordleGame"
+import { AntiBotProtection } from "../AntiBotProtection"
 
-// Mock DictionaryManager
-vi.mock("../../party/dictionary", () => ({
-  DictionaryManager: class {
+// Mock DictionaryService
+vi.mock("../services/DictionaryService", () => ({
+  DictionaryService: class {
     load = vi.fn().mockResolvedValue({ success: true })
     // Simple mock dictionary
     isWordValid = vi.fn().mockImplementation((word: string) => {
@@ -64,7 +64,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     expect(server.gameState).toBe(GameState.PLAYING)
@@ -86,7 +86,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     // "ALERT" vs "APPLE"
@@ -114,7 +114,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     game.submitWord("host", "ZZZZZ")
@@ -132,7 +132,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     game.submitWord("host", "APPLE")
@@ -148,7 +148,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     game.requestStartGame("host")
 
     // Consume all attempts (default 5, defined in GAME_CONFIG)
@@ -166,8 +166,8 @@ describe("Wordle Game Logic", () => {
 
   it("should update settings when admin requests", async () => {
     const host = await joinPlayer("host")
-    server.activeGame = new WordleGame(server)
-    const game = server.activeGame as WordleGame
+    server.roomService.activeGame = new WordleGame(server)
+    const game = server.roomService.activeGame as WordleGame
 
     const newSettings = {
       maxTimer: 120,
@@ -185,8 +185,8 @@ describe("Wordle Game Logic", () => {
   it("should ignore settings update from non-admin", async () => {
     await joinPlayer("host")
     await joinPlayer("p2")
-    server.activeGame = new WordleGame(server)
-    const game = server.activeGame as WordleGame
+    server.roomService.activeGame = new WordleGame(server)
+    const game = server.roomService.activeGame as WordleGame
 
     // Ensure p2 is not admin
     expect(server.players.get("p2")?.isAdmin).toBe(false)
@@ -201,7 +201,7 @@ describe("Wordle Game Logic", () => {
   it("should show new word length setting in getState when game is ended", async () => {
     await joinPlayer("host")
     const game = new WordleGame(server)
-    server.activeGame = game
+    server.roomService.activeGame = game
     server.gameState = GameState.ENDED
     game.winnerId = "host"
     game.targetWord = "APPLE" // Previous game was 5 letters
@@ -236,7 +236,7 @@ describe("Wordle Game Logic", () => {
       minReactionTimeMs: 0,
       minTypingEvents: 0,
     })
-    server.activeGame = game
+    server.roomService.activeGame = game
     server.gameState = GameState.ENDED
     game.maxAttempts = 5
 

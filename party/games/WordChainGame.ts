@@ -1,4 +1,4 @@
-import { BaseGame } from "../game-engine"
+import { BaseGame } from "../core/BaseGame"
 import {
   WordChainClientMessageType,
   WordChainSettingsSchema,
@@ -23,8 +23,8 @@ export class WordChainGame extends BaseGame {
   round: number = 1
   minLength: number = 3
 
-  constructor(server: any) {
-    super(server)
+  constructor(context: any) {
+    super(context)
   }
 
   onStart(): void {
@@ -32,7 +32,7 @@ export class WordChainGame extends BaseGame {
       return // Need at least 1
     }
 
-    if (!this.server.dictionaryReady) {
+    if (!this.context.dictionaryReady) {
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Dictionary not loaded!",
@@ -40,7 +40,7 @@ export class WordChainGame extends BaseGame {
       return
     }
 
-    this.server.gameState = GameState.PLAYING
+    this.context.gameState = GameState.PLAYING
     this.usedWords = new Set()
     this.round = 1
     this.minLength = 3
@@ -54,7 +54,7 @@ export class WordChainGame extends BaseGame {
 
     // Pick a random starting word to kick things off
     try {
-      this.currentWord = this.server.dictionary.getRandomWord(4) // simple word
+      this.currentWord = this.context.dictionary.getRandomWord(4) // simple word
     } catch (e) {
       this.currentWord = "START"
     }
@@ -100,8 +100,8 @@ export class WordChainGame extends BaseGame {
     const player = this.players.get(playerId)
     if (
       player?.isAdmin &&
-      (this.server.gameState === GameState.LOBBY ||
-        this.server.gameState === GameState.ENDED)
+      (this.context.gameState === GameState.LOBBY ||
+        this.context.gameState === GameState.ENDED)
     ) {
       this.onStart()
     }
@@ -109,14 +109,14 @@ export class WordChainGame extends BaseGame {
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.server.gameState === GameState.PLAYING) {
+    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
       this.endGame()
     }
   }
 
   public submitWord(playerId: string, word: string) {
     if (
-      this.server.gameState !== GameState.PLAYING ||
+      this.context.gameState !== GameState.PLAYING ||
       this.activePlayerId !== playerId
     ) {
       return
@@ -126,7 +126,7 @@ export class WordChainGame extends BaseGame {
 
   public updateTyping(playerId: string, text: string) {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
       this.antiBot.trackTyping(playerId)
@@ -153,12 +153,12 @@ export class WordChainGame extends BaseGame {
       if (s.hardModeStartRound !== undefined)
         this.hardModeStartRound = s.hardModeStartRound
 
-      this.server.broadcastState()
+      this.context.broadcastState()
     }
   }
 
   onTick(): void {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     this.timer -= 1
     this.broadcast({ type: ServerMessageType.STATE_UPDATE, timer: this.timer })
@@ -170,7 +170,7 @@ export class WordChainGame extends BaseGame {
 
   onPlayerLeave(playerId: string): void {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
       this.broadcast({
@@ -184,7 +184,7 @@ export class WordChainGame extends BaseGame {
         (p) => p.isAlive,
       )
 
-      if (alivePlayers.length <= 1 && this.server.initialAliveCount > 1) {
+      if (alivePlayers.length <= 1 && this.context.initialAliveCount > 1) {
         this.nextTurn() // This triggers win check
       } else if (alivePlayers.length === 0) {
         this.endGame(null)
@@ -197,7 +197,7 @@ export class WordChainGame extends BaseGame {
       const alivePlayers = Array.from(this.players.values()).filter(
         (p) => p.isAlive,
       )
-      if (alivePlayers.length <= 1 && this.server.initialAliveCount > 1) {
+      if (alivePlayers.length <= 1 && this.context.initialAliveCount > 1) {
         // If we are left with 1 survivor, nextTurn logic handles declaring winner?
         // nextTurn checks `alivePlayers`
         this.nextTurn()
@@ -231,7 +231,7 @@ export class WordChainGame extends BaseGame {
   }
 
   nextTurn(isFirst: boolean = false) {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     const alivePlayers = Array.from(this.players.values()).filter(
       (p) => p.isAlive,
@@ -244,7 +244,7 @@ export class WordChainGame extends BaseGame {
     }
 
     // Multiplayer Win: Last player standing
-    if (this.server.initialAliveCount > 1 && alivePlayers.length === 1) {
+    if (this.context.initialAliveCount > 1 && alivePlayers.length === 1) {
       alivePlayers[0].wins++
       this.endGame(alivePlayers[0].id)
       return
@@ -293,7 +293,7 @@ export class WordChainGame extends BaseGame {
     }
 
     this.timer = this.maxTimer
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   handleGuess(playerId: string, word: string) {
@@ -331,7 +331,7 @@ export class WordChainGame extends BaseGame {
       return
     }
 
-    if (!this.server.dictionary.isWordValid(upper)) {
+    if (!this.context.dictionary.isWordValid(upper)) {
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Not in dictionary!",
@@ -376,7 +376,7 @@ export class WordChainGame extends BaseGame {
   }
 
   endGame(winnerId?: string | null) {
-    this.server.gameState = GameState.ENDED
+    this.context.gameState = GameState.ENDED
     this.winnerId = winnerId || null
     this.gameTimer.stop()
     this.broadcast({
@@ -384,7 +384,7 @@ export class WordChainGame extends BaseGame {
       winnerId,
       message: winnerId ? "We have a winner!" : "Game Over",
     })
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   getState(): Record<string, any> {

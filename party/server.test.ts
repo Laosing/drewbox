@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import Server from "../../party/server"
+import Server from "./server"
 import {
   MockRoom,
   MockConnection,
   createMockConnectionContext,
   MockStorage,
-} from "../mocks/party"
-import { GameState, GameMode } from "../../shared/types"
+} from "../test/mocks/party"
+import { GameState, GameMode } from "../shared/types"
 
-// Mock DictionaryManager to avoid loading real dictionary files
-vi.mock("../../party/dictionary", () => ({
-  DictionaryManager: class {
+// Mock DictionaryRepository to avoid loading real dictionary files
+vi.mock("./services/DictionaryService", () => ({
+  DictionaryService: class {
     load = vi.fn().mockResolvedValue({ success: true })
     validate = vi.fn().mockReturnValue(true)
   },
@@ -30,6 +30,8 @@ describe("PartyKit Server Smoke Tests", () => {
       error: vi.fn(),
       debug: vi.fn(),
     } as any
+    // Spy on reportToLobby (it's a method on Server now)
+    vi.spyOn(server, "reportToLobby").mockResolvedValue()
   })
 
   it("should instantiate correctly", () => {
@@ -48,6 +50,8 @@ describe("PartyKit Server Smoke Tests", () => {
 
     // First player should be admin
     expect(server.players.get("user1")?.isAdmin).toBe(true)
+    // Should have reported to lobby
+    expect(server.reportToLobby).toHaveBeenCalled()
   })
 
   it("should remove player on disconnect", async () => {
@@ -57,8 +61,13 @@ describe("PartyKit Server Smoke Tests", () => {
 
     expect(server.players.size).toBe(1)
 
+    // Clear spy history from connect call
+    vi.mocked(server.reportToLobby).mockClear()
+
     await server.onClose(conn as any)
     expect(server.players.size).toBe(0)
+    // Should have reported to lobby upon closing
+    expect(server.reportToLobby).toHaveBeenCalled()
   })
 
   it("should persist game mode on first connect", async () => {
@@ -83,7 +92,8 @@ describe("PartyKit Server Smoke Tests", () => {
     )
     await server.onConnect(host as any, hostCtx)
     expect(server.players.has("host")).toBe(true)
-    expect((server as any).password).toBe("secret")
+    expect(server.players.has("host")).toBe(true)
+    expect(server.roomService.password).toBe("secret")
 
     // 2. User joins with WRONG password
     const hacker = new MockConnection("hacker")
@@ -128,8 +138,9 @@ describe("PartyKit Server Smoke Tests", () => {
     await server.onMessage(kickMsg, host as any)
 
     expect(server.players.has("guest")).toBe(false)
-    expect(server.blockedIPs.has("guest")).toBe(true) // Should block ID
-    expect(server.blockedIPs.has("2.2.2.2")).toBe(true) // Should block IP
+    expect(server.players.has("guest")).toBe(false)
+    expect(server.roomService.moderation.blockedIPs.has("guest")).toBe(true) // Should block ID
+    expect(server.roomService.moderation.blockedIPs.has("2.2.2.2")).toBe(true) // Should block IP
   })
 
   it("should ignore kick requests from non-admins", async () => {

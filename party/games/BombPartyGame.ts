@@ -1,4 +1,4 @@
-import { BaseGame } from "../game-engine"
+import { BaseGame } from "../core/BaseGame"
 import {
   BombPartyClientMessageType,
   BombPartySettingsSchema,
@@ -29,15 +29,15 @@ export class BombPartyGame extends BaseGame {
 
   turnStartTime: number = 0
 
-  constructor(server: any) {
-    super(server)
+  constructor(context: any) {
+    super(context)
     // Initialize defaults
   }
 
   onStart(): void {
     if (this.players.size < 1) return
     // We assume dictionary is ready or checked before start, but let's check
-    if (!this.server.dictionaryReady) {
+    if (!this.context.dictionaryReady) {
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Dictionary not loaded!",
@@ -45,9 +45,9 @@ export class BombPartyGame extends BaseGame {
       return
     }
 
-    this.server.gameState = GameState.PLAYING
+    this.context.gameState = GameState.PLAYING
     this.usedWords.clear()
-    this.server.initialAliveCount = this.players.size
+    this.context.initialAliveCount = this.players.size
     this.syllableTurnCount = 0
     this.round = 1
     this.playersPlayedInRound.clear()
@@ -70,7 +70,7 @@ export class BombPartyGame extends BaseGame {
   }
 
   onTick(): void {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     // Defensive check: If active player is gone, skip turn immediately
     // Ideally onPlayerLeave handles this, but this catches edge cases
@@ -91,7 +91,7 @@ export class BombPartyGame extends BaseGame {
   onPlayerLeave(playerId: string): void {
     // If the active player left, immediately move to next turn
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
       // The player is already removed from this.players by the server
@@ -100,7 +100,7 @@ export class BombPartyGame extends BaseGame {
         message: "Active player left! Passing turn...",
       })
       this.checkWinCondition() // Check if game should end
-      if (this.server.gameState === GameState.PLAYING) {
+      if (this.context.gameState === GameState.PLAYING) {
         this.nextTurn(false, undefined, false)
       }
     } else {
@@ -126,7 +126,7 @@ export class BombPartyGame extends BaseGame {
     }
 
     this.checkWinCondition()
-    if (this.server.gameState === GameState.PLAYING) {
+    if (this.context.gameState === GameState.PLAYING) {
       this.nextTurn(false, undefined, false)
     }
   }
@@ -136,7 +136,7 @@ export class BombPartyGame extends BaseGame {
     overridePlayerId?: string | null,
     incrementSyllableCount: boolean = true,
   ) {
-    if (this.server.gameState !== GameState.PLAYING) return
+    if (this.context.gameState !== GameState.PLAYING) return
 
     const playerIds = Array.from(this.players.values())
       .filter((p) => p.isAlive)
@@ -173,7 +173,7 @@ export class BombPartyGame extends BaseGame {
     }
 
     if (changeSyllable) {
-      if (!this.server.dictionaryReady) {
+      if (!this.context.dictionaryReady) {
         this.broadcast({
           type: ServerMessageType.ERROR,
           message: "Dictionary not loaded!",
@@ -181,7 +181,7 @@ export class BombPartyGame extends BaseGame {
         this.endGame()
         return
       }
-      this.currentSyllable = this.server.dictionary.getRandomSyllable(50)
+      this.currentSyllable = this.context.dictionary.getRandomSyllable(50)
       this.syllableTurnCount = 0
     }
 
@@ -210,12 +210,12 @@ export class BombPartyGame extends BaseGame {
       this.antiBot.clearTyping(this.activePlayerId)
     }
 
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   checkWinCondition() {
     const alive = Array.from(this.players.values()).filter((p) => p.isAlive)
-    if (alive.length <= 1 && this.server.initialAliveCount > 1) {
+    if (alive.length <= 1 && this.context.initialAliveCount > 1) {
       this.endGame(alive[0]?.id)
     } else if (alive.length === 0) {
       // Technically shouldn't happen if initial > 1, but handled
@@ -228,7 +228,7 @@ export class BombPartyGame extends BaseGame {
   }
 
   endGame(winnerId?: string | null) {
-    this.server.gameState = GameState.ENDED
+    this.context.gameState = GameState.ENDED
     this.winnerId = winnerId || null
     this.gameTimer.stop()
     this.broadcast({ type: ServerMessageType.GAME_OVER, winnerId })
@@ -240,7 +240,7 @@ export class BombPartyGame extends BaseGame {
       }
     }
 
-    this.server.broadcastState()
+    this.context.broadcastState()
   }
 
   onMessage(message: string, sender: Party.Connection): void {
@@ -277,7 +277,7 @@ export class BombPartyGame extends BaseGame {
     const player = this.players.get(playerId)
     if (
       player?.isAdmin &&
-      this.server.gameState === GameState.LOBBY &&
+      this.context.gameState === GameState.LOBBY &&
       this.players.size > 0
     ) {
       this.onStart()
@@ -286,19 +286,19 @@ export class BombPartyGame extends BaseGame {
 
   public requestResetGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.server.gameState === GameState.ENDED) {
-      this.server.gameState = GameState.LOBBY
+    if (player?.isAdmin && this.context.gameState === GameState.ENDED) {
+      this.context.gameState = GameState.LOBBY
       this.broadcast({
         type: ServerMessageType.SYSTEM_MESSAGE,
         message: "Game reset to lobby!",
       })
-      this.server.broadcastState()
+      this.context.broadcastState()
     }
   }
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.server.gameState === GameState.PLAYING) {
+    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
       this.broadcast({
         type: ServerMessageType.SYSTEM_MESSAGE,
         message: "Admin stopped the game!",
@@ -309,7 +309,7 @@ export class BombPartyGame extends BaseGame {
 
   public submitWord(playerId: string, word: string) {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId &&
       typeof word === "string"
     ) {
@@ -319,7 +319,7 @@ export class BombPartyGame extends BaseGame {
 
   public updateTyping(playerId: string, text: string) {
     if (
-      this.server.gameState === GameState.PLAYING &&
+      this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId &&
       typeof text === "string"
     ) {
@@ -350,7 +350,7 @@ export class BombPartyGame extends BaseGame {
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
       if (s.gameLogEnabled !== undefined) this.gameLogEnabled = s.gameLogEnabled
 
-      this.server.broadcastState()
+      this.context.broadcastState()
     }
   }
 
@@ -373,7 +373,7 @@ export class BombPartyGame extends BaseGame {
       return
     }
 
-    const check = this.server.dictionary.isValid(word, this.currentSyllable)
+    const check = this.context.dictionary.isValid(word, this.currentSyllable)
     if (check.valid) {
       this.usedWords.add(word.toLowerCase())
       const p = this.players.get(playerId)
@@ -435,7 +435,7 @@ export class BombPartyGame extends BaseGame {
       syllableChangeThreshold: this.syllableChangeThreshold,
       bonusWordLength: this.bonusWordLength,
       hardModeStartRound: this.hardModeStartRound,
-      dictionaryLoaded: this.server.dictionaryReady,
+      dictionaryLoaded: this.context.dictionaryReady,
       chatEnabled: this.chatEnabled,
       gameLogEnabled: this.gameLogEnabled,
       round: this.round,
