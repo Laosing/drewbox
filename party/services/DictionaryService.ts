@@ -10,7 +10,9 @@ let SHARED_WORD_SET: Set<string> = new Set()
 let SHARED_VALID_SYLLABLES: string[] = []
 let LOADING_PROMISE: Promise<void> | null = null
 
-function buildValidSyllables(words: string[], minWords: number): string[] {
+const SYLLABLE_THRESHOLD = 50
+
+function buildValidSyllables(words: string[]): string[] {
   const counts = new Map<string, number>()
   for (const word of words) {
     if (word.length < 2) continue
@@ -25,7 +27,7 @@ function buildValidSyllables(words: string[], minWords: number): string[] {
   }
   const valid: string[] = []
   for (const [syllable, count] of counts) {
-    if (count >= minWords) valid.push(syllable)
+    if (count >= SYLLABLE_THRESHOLD) valid.push(syllable)
   }
   return valid
 }
@@ -76,9 +78,11 @@ export class DictionaryService implements IDictionaryRepository {
           .map((w) => w.trim().toUpperCase())
           .filter((w) => w.length > 0)
         SHARED_WORD_SET = new Set(SHARED_WORDS)
-        SHARED_VALID_SYLLABLES = buildValidSyllables(SHARED_WORDS, 50)
+        SHARED_VALID_SYLLABLES = buildValidSyllables(SHARED_WORDS)
 
-        logger.info(`Dictionary loaded. ${SHARED_WORDS.length} words, ${SHARED_VALID_SYLLABLES.length} valid syllables indexed.`)
+        logger.info(
+          `Dictionary loaded. ${SHARED_WORDS.length} words, ${SHARED_VALID_SYLLABLES.length} valid syllables indexed.`,
+        )
       } catch (e: any) {
         logger.error("Failed to load dictionary", e)
         LOADING_PROMISE = null // Reset so we can retry
@@ -113,8 +117,11 @@ export class DictionaryService implements IDictionaryRepository {
   }
 
   getRandomSyllable(): string {
-    if (SHARED_VALID_SYLLABLES.length === 0) throw new Error("Dictionary not loaded")
-    return SHARED_VALID_SYLLABLES[Math.floor(Math.random() * SHARED_VALID_SYLLABLES.length)]
+    if (SHARED_VALID_SYLLABLES.length === 0)
+      throw new Error("Dictionary not loaded")
+    return SHARED_VALID_SYLLABLES[
+      Math.floor(Math.random() * SHARED_VALID_SYLLABLES.length)
+    ]
   }
 
   getRandomWord(length: number = 5): string {
