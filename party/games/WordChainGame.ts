@@ -1,11 +1,10 @@
 import { BaseGame } from "../core/BaseGame"
 import {
   WordChainClientMessageType,
-  WordChainSettingsSchema,
-  GAME_CONFIG,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
+import { WordChainSettingsSchema, GAME_CONFIG } from "../../shared/config"
 import type * as Party from "partykit/server"
 import type { WordChainClientMessage } from "../../shared/types"
 

@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from "../../../shared/types"
+import { GAME_CONFIG } from "../../../shared/config"
 import { NumberInput, ToggleInput } from "../SettingsInputs"
 
 interface BombPartySettingsProps {

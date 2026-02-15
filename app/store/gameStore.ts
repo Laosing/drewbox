@@ -1,17 +1,12 @@
 import { create } from "zustand"
 import {
-  BombPartyClientMessageType,
-  BombPartySettingsSchema,
-  GameMode,
   GameState,
   GlobalClientMessageType,
   ServerMessageType,
-  WordChainClientMessageType,
-  WordChainSettingsSchema,
-  WordleClientMessageType,
-  WordleSettingsSchema,
+  type GameMode,
   type Player,
 } from "../../shared/types"
+import { SETTINGS_CONFIG } from "../../shared/config"
 import { STORAGE_KEYS } from "../config"
 import type PartySocket from "partysocket"
 
@@ -95,10 +90,12 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
       get().addLog(`${data.message}`)
     } else if (data.type === ServerMessageType.GAME_OVER) {
       if (data.winnerId) {
-        const winnerName =
-          state.players.find((p) => p.id === data.winnerId)?.name ||
-          data.winnerId
-        get().addLog(`Game Over! Winner: ${winnerName}`)
+        const winner = state.players.find((p) => p.id === data.winnerId)
+        const winnerName = winner?.name || data.winnerId
+        const lastWord = winner?.lastTurn?.word
+        get().addLog(
+          `Game Over! Winner: ${winnerName}${lastWord ? ` | Last word: ${lastWord}` : ""}`,
+        )
       } else {
         get().addLog("Game Over!")
       }
@@ -163,36 +160,18 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
       pendingSettings
     const { gameMode, socket } = get()
 
-    if (gameMode === GameMode.WORDLE) {
-      const result = WordleSettingsSchema.partial().safeParse(rawSettings)
-      if (result.success && Object.keys(result.data).length > 0) {
-        socket?.send(
-          JSON.stringify({
-            ...result.data,
-            type: WordleClientMessageType.UPDATE_SETTINGS,
-          }),
-        )
-      }
-    } else if (gameMode === GameMode.BOMB_PARTY) {
-      const result = BombPartySettingsSchema.partial().safeParse(rawSettings)
-      if (result.success && Object.keys(result.data).length > 0) {
-        socket?.send(
-          JSON.stringify({
-            ...result.data,
-            type: BombPartyClientMessageType.UPDATE_SETTINGS,
-          }),
-        )
-      }
-    } else if (gameMode === GameMode.WORD_CHAIN) {
-      const result = WordChainSettingsSchema.partial().safeParse(rawSettings)
-      if (result.success && Object.keys(result.data).length > 0) {
-        socket?.send(
-          JSON.stringify({
-            ...result.data,
-            type: WordChainClientMessageType.UPDATE_SETTINGS,
-          }),
-        )
-      }
+    if (!gameMode) return
+    const config = SETTINGS_CONFIG[gameMode]
+    if (!config) return
+
+    const result = config.schema.partial().safeParse(rawSettings)
+    if (result.success && Object.keys(result.data).length > 0) {
+      socket?.send(
+        JSON.stringify({
+          ...result.data,
+          type: config.messageType,
+        }),
+      )
     }
   },
 }))

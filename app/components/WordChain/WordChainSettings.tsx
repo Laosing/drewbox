@@ -1,5 +1,4 @@
-import type { WordChainSettings } from "../../../shared/types"
-import { GAME_CONFIG } from "../../../shared/types"
+import { GAME_CONFIG, type WordChainSettings } from "../../../shared/config"
 
 import { NumberInput, ToggleInput } from "../SettingsInputs"
 

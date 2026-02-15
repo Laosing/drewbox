@@ -1,11 +1,10 @@
 import { BaseGame } from "../core/BaseGame"
 import {
   BombPartyClientMessageType,
-  BombPartySettingsSchema,
-  GAME_CONFIG,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
+import { BombPartySettingsSchema, GAME_CONFIG } from "../../shared/config"
 import type { BombPartyClientMessage } from "../../shared/types"
 import type * as Party from "partykit/server"
 

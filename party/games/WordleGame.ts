@@ -1,11 +1,10 @@
 import { BaseGame } from "../core/BaseGame"
 import {
   WordleClientMessageType,
-  WordleSettingsSchema,
-  GAME_CONFIG,
   GameState,
   ServerMessageType,
 } from "../../shared/types"
+import { WordleSettingsSchema, GAME_CONFIG } from "../../shared/config"
 import type * as Party from "partykit/server"
 import type {
   WordleClientMessage,

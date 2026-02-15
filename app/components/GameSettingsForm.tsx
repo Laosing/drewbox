@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react"
-import { GAME_CONFIG, GameMode } from "../../shared/types"
+import { GameMode } from "../../shared/types"
+import { GAME_CONFIG } from "../../shared/config"
 
 // Lazy load game settings forms
 const BombPartySettings = lazy(() => import("./BombParty/BombPartySettings"))

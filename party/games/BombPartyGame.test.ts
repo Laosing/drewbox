@@ -5,12 +5,8 @@ import {
   MockConnection,
   createMockConnectionContext,
 } from "../../test/mocks/party"
-import {
-  GameState,
-  GameMode,
-  ServerMessageType,
-  GAME_CONFIG,
-} from "../../shared/types"
+import { GameState, GameMode, ServerMessageType } from "../../shared/types"
+import { GAME_CONFIG } from "../../shared/config"
 import { BombPartyGame } from "./BombPartyGame"
 
 // Mock DictionaryService
