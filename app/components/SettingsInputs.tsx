@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useId } from "react"
 
 interface NumberInputProps {
   label: string
@@ -18,10 +18,14 @@ export function NumberInput({
   max,
   helperText,
 }: NumberInputProps) {
+  const id = useId()
   return (
     <fieldset className="fieldset">
-      <legend className="fieldset-legend">{label}</legend>
+      <label htmlFor={id} className="fieldset-legend">
+        {label}
+      </label>
       <input
+        id={id}
         type="number"
         min={min}
         max={max}
@@ -54,13 +58,15 @@ export function ToggleInput({
   onChange,
   helperText,
 }: ToggleInputProps) {
+  const id = useId()
   return (
     <fieldset className="fieldset">
-      <label className="label text-sm">
+      <label htmlFor={id} className="label text-sm cursor-pointer">
         <input
+          id={id}
           type="checkbox"
-          defaultChecked={checked}
-          className="toggle toggle-sm"
+          checked={checked}
+          className="toggle toggle-sm mr-2"
           onChange={(e) => onChange(e.target.checked)}
         />
         {label}

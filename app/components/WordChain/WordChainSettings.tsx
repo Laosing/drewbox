@@ -3,27 +3,33 @@ import { GAME_CONFIG, type WordChainSettings } from "../../../shared/config"
 import { NumberInput, ToggleInput } from "../SettingsInputs"
 
 interface WordChainSettingsProps {
-  settings: WordChainSettings
+  maxTimer: number | string
+  startingLives: number | string
+  hardModeStartRound: number | string
+  chatEnabled?: boolean
+  gameLogEnabled?: boolean
   onUpdate: (settings: Partial<WordChainSettings> & Record<string, any>) => void
 }
 
 export default function WordChainSettings({
-  settings,
+  maxTimer,
+  startingLives,
+  hardModeStartRound,
+  chatEnabled,
+  gameLogEnabled,
   onUpdate,
 }: WordChainSettingsProps) {
-  const { maxTimer, startingLives } = settings
-
   return (
     <>
       <ToggleInput
         label="Enable Chat"
-        checked={settings.chatEnabled ?? true}
+        checked={!!chatEnabled}
         onChange={(checked) => onUpdate({ chatEnabled: checked })}
       />
 
       <ToggleInput
         label="Enable Game Log"
-        checked={settings.gameLogEnabled ?? true}
+        checked={!!gameLogEnabled}
         onChange={(checked) => onUpdate({ gameLogEnabled: checked })}
       />
 
@@ -48,8 +54,7 @@ export default function WordChainSettings({
       <NumberInput
         label="Hard Mode"
         value={
-          settings.hardModeStartRound ??
-          GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.DEFAULT
+          hardModeStartRound ?? GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.DEFAULT
         }
         min={GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.MIN}
         max={GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.MAX}

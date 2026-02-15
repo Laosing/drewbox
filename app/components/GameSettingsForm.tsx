@@ -87,7 +87,26 @@ export function GameSettingsForm({
         />
       )}
       {gameMode === GameMode.WORD_CHAIN && (
-        <WordChainSettings settings={pendingSettings} onUpdate={onUpdate} />
+        <WordChainSettings
+          maxTimer={
+            pendingSettings.maxTimer ??
+            serverState.maxTimer ??
+            GAME_CONFIG.WORD_CHAIN.TIMER.DEFAULT
+          }
+          startingLives={
+            pendingSettings.startingLives ??
+            serverState.startingLives ??
+            GAME_CONFIG.WORD_CHAIN.LIVES.DEFAULT
+          }
+          hardModeStartRound={
+            pendingSettings.hardModeStartRound ??
+            serverState.hardModeStartRound ??
+            GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.DEFAULT
+          }
+          chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
+          gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
+          onUpdate={onUpdate}
+        />
       )}
     </Suspense>
   )
