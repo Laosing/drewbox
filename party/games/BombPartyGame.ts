@@ -70,6 +70,12 @@ export class BombPartyGame extends BaseGame {
 
     this.nextTurn(true)
 
+    this.logger.info("Game started", {
+      initialPlayers: this.players.size,
+      startingLives: this.startingLives,
+      maxTimer: this.maxTimer,
+    })
+
     this.broadcast({
       type: ServerMessageType.SYSTEM_MESSAGE,
       message: "Game Started!",
@@ -134,6 +140,11 @@ export class BombPartyGame extends BaseGame {
       if (p.lives <= 0) {
         p.isAlive = false
       }
+      this.logger.info("Player explosion", {
+        playerId: this.activePlayerId,
+        remainingLives: p.lives,
+        isEliminated: !p.isAlive,
+      })
       this.broadcast({
         type: ServerMessageType.EXPLOSION,
         playerId: this.activePlayerId,
@@ -255,6 +266,12 @@ export class BombPartyGame extends BaseGame {
       }
     }
 
+    this.logger.info("Game ended", {
+      winnerId,
+      totalRounds: this.round,
+      usedWordsCount: this.usedWords.size,
+    })
+
     this.context.broadcastState()
   }
 
@@ -369,6 +386,7 @@ export class BombPartyGame extends BaseGame {
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
       if (s.gameLogEnabled !== undefined) this.gameLogEnabled = s.gameLogEnabled
 
+      this.logger.info("Settings updated", { adminId: playerId, ...s })
       this.context.broadcastState()
     }
   }
@@ -385,6 +403,7 @@ export class BombPartyGame extends BaseGame {
 
     const word = rawWord.trim()
     if (this.usedWords.has(word.toLowerCase())) {
+      this.logger.info("Duplicate word submission blocked", { playerId, word })
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: "Word already used!",
@@ -430,12 +449,23 @@ export class BombPartyGame extends BaseGame {
           })
         }
       }
+      this.logger.info("Valid word submitted", {
+        playerId,
+        word,
+        syllable: this.currentSyllable,
+      })
       this.broadcast({
         type: ServerMessageType.VALID_WORD,
         message: `${p?.name || "Player"} submitted: ${word}`,
       })
       this.nextTurn()
     } else {
+      this.logger.info("Invalid word submission", {
+        playerId,
+        word,
+        syllable: this.currentSyllable,
+        reason: check.reason,
+      })
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: check.reason,

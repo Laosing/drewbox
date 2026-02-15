@@ -60,6 +60,12 @@ export class WordChainGame extends BaseGame {
     }
     this.usedWords.add(this.currentWord)
 
+    this.logger.info("Word Chain started", {
+      startingWord: this.currentWord,
+      startingLives: this.startingLives,
+      initialPlayers: this.players.size,
+    })
+
     this.gameTimer.start()
     this.nextTurn(true)
 
@@ -133,6 +139,7 @@ export class WordChainGame extends BaseGame {
       this.broadcast({
         type: ServerMessageType.TYPING_UPDATE,
         text: text.substring(0, 50),
+        playerId,
       })
     }
   }
@@ -153,6 +160,7 @@ export class WordChainGame extends BaseGame {
       if (s.hardModeStartRound !== undefined)
         this.hardModeStartRound = s.hardModeStartRound
 
+      this.logger.info("Settings updated", { adminId: playerId, ...s })
       this.context.broadcastState()
     }
   }
@@ -179,7 +187,6 @@ export class WordChainGame extends BaseGame {
       })
 
       // Check win condition first, as the leaving player might have been the last one standing
-      // (The GameServer class removes the player from the map before calling this)
       const alivePlayers = Array.from(this.players.values()).filter(
         (p) => p.isAlive,
       )
@@ -192,14 +199,10 @@ export class WordChainGame extends BaseGame {
         this.nextTurn()
       }
     } else {
-      // If a regular player leaves, we should also check if that triggers a win
-      // e.g. everyone left except one
       const alivePlayers = Array.from(this.players.values()).filter(
         (p) => p.isAlive,
       )
       if (alivePlayers.length <= 1 && this.context.initialAliveCount > 1) {
-        // If we are left with 1 survivor, nextTurn logic handles declaring winner?
-        // nextTurn checks `alivePlayers`
         this.nextTurn()
       }
     }
@@ -209,7 +212,7 @@ export class WordChainGame extends BaseGame {
     this.broadcast({
       type: ServerMessageType.EXPLOSION,
       playerId: this.activePlayerId,
-    }) // Re-use explosion for dramatic effect?
+    })
 
     const player = this.players.get(this.activePlayerId!)
     if (player) {
@@ -226,6 +229,12 @@ export class WordChainGame extends BaseGame {
           message: `${player.name} lost a life!`,
         })
       }
+
+      this.logger.info("Player lost life to timeout", {
+        playerId: this.activePlayerId,
+        remainingLives: player.lives,
+        isEliminated: !player.isAlive,
+      })
     }
     this.nextTurn()
   }
@@ -243,24 +252,19 @@ export class WordChainGame extends BaseGame {
       return
     }
 
-    // Multiplayer Win: Last player standing
     if (this.context.initialAliveCount > 1 && alivePlayers.length === 1) {
       alivePlayers[0].wins++
       this.endGame(alivePlayers[0].id)
       return
     }
 
-    // Solo play continues until death (alivePlayers < 1)
-
     if (isFirst) {
       const randomIndex = Math.floor(Math.random() * alivePlayers.length)
       this.activePlayerId = alivePlayers[randomIndex].id
     } else if (this.activePlayerId) {
-      // Actually need to rotate through currently alive players
       const aliveIds = alivePlayers.map((p) => p.id)
       const currentIndex = aliveIds.indexOf(this.activePlayerId)
 
-      // If active player left or not found, start from 0
       let nextIndex = 0
       if (currentIndex !== -1) {
         nextIndex = (currentIndex + 1) % aliveIds.length
@@ -277,8 +281,6 @@ export class WordChainGame extends BaseGame {
         this.round++
         this.playersPlayedInRound.clear()
 
-        // Update Hard Mode Min Length
-        // Base is 3. Increase by 1 for every round past the start threshold
         if (this.round >= this.hardModeStartRound) {
           const increase = this.round - this.hardModeStartRound + 1
           this.minLength = 3 + increase
@@ -286,6 +288,11 @@ export class WordChainGame extends BaseGame {
           this.broadcast({
             type: ServerMessageType.SYSTEM_MESSAGE,
             message: `HARD MODE! Minimum word length is now ${this.minLength}!`,
+          })
+
+          this.logger.info("Hard mode difficulty increased", {
+            round: this.round,
+            minLength: this.minLength,
           })
         }
       }
@@ -297,7 +304,6 @@ export class WordChainGame extends BaseGame {
   }
 
   handleGuess(playerId: string, word: string) {
-    // Bot Check: Must have typed
     const botCheck = this.antiBot.validateAction(playerId)
     if (!botCheck.isValid) {
       this.sendTo(playerId, {
@@ -341,6 +347,11 @@ export class WordChainGame extends BaseGame {
     }
 
     if (upper.length < this.minLength) {
+      this.logger.info("Short word submission blocked", {
+        playerId,
+        word: upper,
+        minLength: this.minLength,
+      })
       this.broadcast({
         type: ServerMessageType.ERROR,
         message: `Word must be at least ${this.minLength} letters!`,
@@ -353,17 +364,19 @@ export class WordChainGame extends BaseGame {
     this.usedWords.add(upper)
     this.currentWord = upper
 
-    // Bonus for long words?
-
     const player = this.players.get(playerId)
     if (player) {
-      // Track last turn for UI
-      // For Word Chain, the "syllable" concept is basically the starting letter (the link)
       player.lastTurn = {
         word: upper,
         syllable: upper.charAt(0),
       }
     }
+
+    this.logger.info("Valid word played", {
+      playerId,
+      word: upper,
+      round: this.round,
+    })
 
     this.broadcast({
       type: ServerMessageType.VALID_WORD,
@@ -384,6 +397,13 @@ export class WordChainGame extends BaseGame {
       winnerId,
       message: winnerId ? "We have a winner!" : "Game Over",
     })
+
+    this.logger.info("Word Chain ended", {
+      winnerId,
+      totalRound: this.round,
+      usedWordsCount: this.usedWords.size,
+    })
+
     this.context.broadcastState()
   }
 

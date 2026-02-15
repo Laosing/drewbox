@@ -13,7 +13,7 @@ export class ChatService {
   > = new Map()
 
   constructor(roomId: string, context: IRoomContext) {
-    this.logger = createLogger(`Chat [${roomId}]`)
+    this.logger = createLogger(`Chat [${roomId}]`, roomId)
     this.context = context
   }
 
@@ -28,6 +28,7 @@ export class ChatService {
     }
     const now = Date.now()
     if (now - limits.lastChat < 1000) {
+      this.logger.warn("Chat rate limit hit", { connectionId })
       return false
     }
     limits.lastChat = now
@@ -42,6 +43,7 @@ export class ChatService {
     }
     const now = Date.now()
     if (now - limits.lastNameChange < 5000) {
+      this.logger.warn("Name change rate limit hit", { connectionId })
       return false
     }
     limits.lastNameChange = now
@@ -52,6 +54,12 @@ export class ChatService {
   broadcastMessage(senderId: string, senderName: string, text: string) {
     const cleanText = text.trim().substring(0, 200)
     if (cleanText.length === 0) return
+
+    this.logger.info("Chat message broadcast", {
+      senderId,
+      senderName,
+      text: cleanText,
+    })
 
     this.context.broadcast({
       type: ServerMessageType.CHAT_MESSAGE,

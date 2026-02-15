@@ -56,11 +56,24 @@ export default class Server implements Party.Server, IRoomContext {
     this.roomService.gameState = state
   }
 
+  get roomId(): string {
+    return this.room.id
+  }
+
   initialAliveCount: number = 0
 
   constructor(room: Party.Room) {
     this.room = room
-    this.logger = createLogger(`Server [${room.id}]`)
+
+    // Initialize observability if configured in environment
+    if (room.env.LOG_URL) {
+      Logger.configure({
+        url: room.env.LOG_URL as string,
+        token: room.env.LOG_TOKEN as string,
+      })
+    }
+
+    this.logger = createLogger(`Server [${room.id}]`, room.id)
     this.dictionary = new DictionaryService()
 
     // Instantiate Services (DI)

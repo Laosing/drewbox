@@ -64,6 +64,12 @@ export class WordleGame extends BaseGame {
     this.gameTimer.start()
     this.nextTurn(true)
 
+    this.logger.info("Wordle game started", {
+      wordLength: this.wordLength,
+      maxAttempts: this.maxAttempts,
+      targetWord: this.targetWord, // Logging word for admin audit
+    })
+
     this.broadcast({
       type: ServerMessageType.SYSTEM_MESSAGE,
       message: `Wordle Game Started! Guess the ${this.wordLength}-letter word.`,
@@ -149,6 +155,7 @@ export class WordleGame extends BaseGame {
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
       if (s.gameLogEnabled !== undefined) this.gameLogEnabled = s.gameLogEnabled
 
+      this.logger.info("Settings updated", { adminId: playerId, ...s })
       this.context.broadcastState()
     }
   }
@@ -179,6 +186,8 @@ export class WordleGame extends BaseGame {
       type: ServerMessageType.SYSTEM_MESSAGE,
       message: "Time's up! Attempt lost.",
     })
+
+    this.logger.info("Player timeout", { playerId: this.activePlayerId })
 
     if (this.guesses.length >= this.maxAttempts) {
       this.broadcast({
@@ -298,6 +307,12 @@ export class WordleGame extends BaseGame {
       timestamp: Date.now(),
     })
 
+    this.logger.info("Wordle guess submitted", {
+      playerId,
+      word: upperWord,
+      isCorrect: upperWord === this.targetWord,
+    })
+
     if (upperWord === this.targetWord) {
       // Win!
       const p = this.players.get(playerId)
@@ -325,6 +340,13 @@ export class WordleGame extends BaseGame {
       winnerId,
       message: `The word was ${this.targetWord}`,
     })
+
+    this.logger.info("Wordle game ended", {
+      winnerId,
+      totalGuesses: this.guesses.length,
+      targetWord: this.targetWord,
+    })
+
     this.context.broadcastState()
   }
 

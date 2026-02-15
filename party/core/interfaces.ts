@@ -17,6 +17,7 @@ export interface IDictionaryRepository {
 export interface IRoomContext {
   // Read-only state
   players: Map<string, Player>
+  roomId: string
   dictionaryReady: boolean
   gameMode: GameMode
 

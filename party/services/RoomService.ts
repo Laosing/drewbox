@@ -43,7 +43,7 @@ export class RoomService {
     this.players = playersMap
     this.gameMode = initialGameMode
 
-    this.logger = createLogger(`RoomService [${room.id}]`)
+    this.logger = createLogger(`RoomService [${room.id}]`, room.id)
 
     // Injected Dependencies
     this.moderation = moderationService
@@ -64,6 +64,11 @@ export class RoomService {
 
     // 1. Moderation Checks
     if (this.moderation.isBanned(conn.id, ip, clientId)) {
+      this.logger.warn("Rejected banned player connection", {
+        ip,
+        clientId,
+        connectionId: conn.id,
+      })
       conn.close(4003, "Banned")
       return
     }
@@ -79,8 +84,13 @@ export class RoomService {
       if (banned && clientId) this.moderation.banPlayer(clientId) // Ban client ID too if we have it?
 
       if (banned) {
+        this.logger.warn("Banning client due to password failures", {
+          ip,
+          clientId,
+        })
         conn.close(4003, "Banned: Too many failed password attempts.")
       } else {
+        this.logger.info("Invalid password attempt", { ip, failures })
         conn.close(4000, "Invalid Password")
       }
       return
@@ -133,6 +143,13 @@ export class RoomService {
 
     this.players.set(conn.id, newPlayer)
 
+    this.logger.info("Player joined room", {
+      playerId: conn.id,
+      name,
+      isAdmin,
+      ip,
+    })
+
     this.context.broadcast({
       type: ServerMessageType.SYSTEM_MESSAGE,
       message: `${name} joined the game!`,
@@ -151,6 +168,12 @@ export class RoomService {
     this.chat.cleanup(connectionId)
     this.players.delete(connectionId)
 
+    this.logger.info("Player disconnected", {
+      playerId: connectionId,
+      name: p.name,
+      remainingPlayers: this.players.size,
+    })
+
     try {
       this.activeGame?.onPlayerLeave(connectionId)
     } catch (e) {
@@ -160,11 +183,18 @@ export class RoomService {
     // Reassign Admin
     if (p.isAdmin && this.players.size > 0) {
       const newAdmin = this.players.values().next().value
-      if (newAdmin) newAdmin.isAdmin = true
+      if (newAdmin) {
+        newAdmin.isAdmin = true
+        this.logger.info("Reassigned room admin", {
+          oldAdminId: connectionId,
+          newAdminId: newAdmin.id,
+        })
+      }
     }
 
     // Handled Empty Room
     if (this.players.size === 0) {
+      this.logger.info("Room empty. Destroying session state.")
       this.activeGame?.dispose()
       this.activeGame = null
       this.gameState = GameState.LOBBY
@@ -238,6 +268,12 @@ export class RoomService {
 
     this.moderation.banPlayer(targetId)
 
+    this.logger.info("Admin kicked player", {
+      adminId: _adminId,
+      targetId,
+      targetName: targetPlayer.name,
+    })
+
     // Close connection
     const conn = this.room.getConnection(targetId)
     if (conn) conn.close(4002, "Kicked by Admin")
@@ -251,6 +287,7 @@ export class RoomService {
 
     this.activeGame?.dispose()
     this.gameMode = mode
+    this.logger.info("Changed game mode", { mode })
     this.initializeGame(mode)
     this.context.broadcastState()
   }

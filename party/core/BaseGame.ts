@@ -2,6 +2,7 @@ import type { IGame, IRoomContext } from "./interfaces"
 import type * as Party from "partykit/server"
 import { GameTimer } from "../GameTimer"
 import { AntiBotProtection } from "../AntiBotProtection"
+import { createLogger, Logger } from "../../shared/logger"
 import type { Player } from "../../shared/types"
 
 export abstract class BaseGame implements IGame {
@@ -14,10 +15,12 @@ export abstract class BaseGame implements IGame {
   // Utilities
   public gameTimer: GameTimer
   public antiBot: AntiBotProtection = new AntiBotProtection()
+  protected logger: Logger
 
   constructor(context: IRoomContext) {
     this.context = context
     this.gameTimer = new GameTimer(() => this.onTick())
+    this.logger = createLogger(this.constructor.name, context.roomId)
   }
 
   abstract onStart(): void
