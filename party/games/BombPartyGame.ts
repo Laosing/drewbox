@@ -26,6 +26,7 @@ export class BombPartyGame extends BaseGame {
   round: number = 0 // Track current round
   playersPlayedInRound: Set<string> = new Set()
   winnerId: string | null = null
+  countdown: number | null = null
 
   turnStartTime: number = 0
 
@@ -36,7 +37,6 @@ export class BombPartyGame extends BaseGame {
 
   onStart(): void {
     if (this.players.size < 1) return
-    // We assume dictionary is ready or checked before start, but let's check
     if (!this.context.dictionaryReady) {
       this.broadcast({
         type: ServerMessageType.ERROR,
@@ -45,13 +45,22 @@ export class BombPartyGame extends BaseGame {
       return
     }
 
+    // Enter countdown phase
+    this.context.gameState = GameState.COUNTDOWN
+    this.countdown = 5
+    this.winnerId = null
+    this.gameTimer.start()
+    this.context.broadcastState()
+  }
+
+  private startGame(): void {
     this.context.gameState = GameState.PLAYING
+    this.countdown = null
     this.usedWords.clear()
     this.context.initialAliveCount = this.players.size
     this.syllableTurnCount = 0
     this.round = 1
     this.playersPlayedInRound.clear()
-    this.winnerId = null
 
     for (const p of this.players.values()) {
       p.lives = this.startingLives
@@ -60,7 +69,6 @@ export class BombPartyGame extends BaseGame {
       p.lastTurn = undefined
     }
 
-    this.gameTimer.start()
     this.nextTurn(true)
 
     this.broadcast({
@@ -70,13 +78,20 @@ export class BombPartyGame extends BaseGame {
   }
 
   onTick(): void {
+    if (this.context.gameState === GameState.COUNTDOWN) {
+      this.countdown! -= 1
+      this.context.broadcastState()
+      if (this.countdown! <= 0) {
+        this.startGame()
+      }
+      return
+    }
+
     if (this.context.gameState !== GameState.PLAYING) return
 
     // Defensive check: If active player is gone, skip turn immediately
-    // Ideally onPlayerLeave handles this, but this catches edge cases
     if (this.activePlayerId && !this.players.has(this.activePlayerId)) {
       this.nextTurn(false, undefined, false)
-      // Don't tick timer down this frame, just switch
       return
     }
 
@@ -275,12 +290,12 @@ export class BombPartyGame extends BaseGame {
   // Public Action Methods
   public requestStartGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (
-      player?.isAdmin &&
-      this.context.gameState === GameState.LOBBY &&
-      this.players.size > 0
-    ) {
+    if (!player?.isAdmin) return
+
+    if (this.context.gameState === GameState.LOBBY && this.players.size > 0) {
       this.onStart()
+    } else if (this.context.gameState === GameState.COUNTDOWN) {
+      this.startGame()
     }
   }
 
@@ -298,7 +313,11 @@ export class BombPartyGame extends BaseGame {
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
+    if (
+      player?.isAdmin &&
+      (this.context.gameState === GameState.PLAYING ||
+        this.context.gameState === GameState.COUNTDOWN)
+    ) {
       this.broadcast({
         type: ServerMessageType.SYSTEM_MESSAGE,
         message: "Admin stopped the game!",
@@ -440,6 +459,7 @@ export class BombPartyGame extends BaseGame {
       gameLogEnabled: this.gameLogEnabled,
       round: this.round,
       winnerId: this.winnerId,
+      countdown: this.countdown,
     }
   }
 }

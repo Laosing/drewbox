@@ -7,6 +7,7 @@ import CreateRoomForm from "./lobby/CreateRoomForm"
 import RoomList from "./lobby/RoomList"
 import PasswordChallengeModal from "./lobby/PasswordChallengeModal"
 import { useLobbyStore } from "../store/lobbyStore"
+import { ThemeController } from "./ThemeController"
 
 export default function LobbyView() {
   // Use store actions
@@ -47,6 +48,7 @@ export default function LobbyView() {
   return (
     <div className="container mx-auto p-4 flex flex-col gap-8 max-w-4xl relative">
       <div className="card bg-base-100 shadow-xl p-8 text-center border border-base-300">
+        <ThemeController />
         <Logo random />
         <p className="opacity-70 mt-4">
           Choose a room to join or create a new one.

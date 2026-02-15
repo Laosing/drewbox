@@ -63,6 +63,13 @@ describe("Bomb Party Game Logic", () => {
     return conn
   }
 
+  // Helper to fast-forward through countdown phase
+  const skipCountdown = (game: BombPartyGame) => {
+    while (server.gameState === GameState.COUNTDOWN) {
+      game.onTick()
+    }
+  }
+
   it("should start game when admin requests", async () => {
     const host = await joinPlayer("host")
     const p2 = await joinPlayer("p2")
@@ -73,6 +80,13 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+
+    // Should enter countdown first
+    expect(server.gameState).toBe(GameState.COUNTDOWN)
+    expect(game.countdown).toBe(5)
+
+    // Fast-forward through countdown
+    skipCountdown(game)
 
     expect(server.gameState).toBe(GameState.PLAYING)
     expect(game.activePlayerId).toBeDefined()
@@ -106,6 +120,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
 
     const activeId = game.activePlayerId!
     expect(activeId).toBeDefined()
@@ -145,6 +160,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
 
     const activeId = game.activePlayerId!
     const activeConn = room.connections.get(activeId)!
@@ -172,6 +188,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
     const activeId = game.activePlayerId!
     const player = server.players.get(activeId)!
     const initialLives = player.lives
@@ -191,6 +208,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
 
     // Kill p2
     const p2 = server.players.get("p2")!
@@ -212,6 +230,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
     const activeId = game.activePlayerId!
     const activeConn = room.connections.get(activeId)
     const player = server.players.get(activeId)!
@@ -247,6 +266,7 @@ describe("Bomb Party Game Logic", () => {
     server.roomService.activeGame = new BombPartyGame(server)
     const game = server.roomService.activeGame as BombPartyGame
     game.requestStartGame("host")
+    skipCountdown(game)
 
     // Setup Hard Mode start
     game.hardModeStartRound = 3

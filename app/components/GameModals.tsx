@@ -95,12 +95,17 @@ function NameModal({
     <Modal
       title="Change Name"
       onActionClick={handleSubmit}
-      actionDisabled={isNameDisabled || gameState === GameState.PLAYING}
+      actionDisabled={
+        isNameDisabled ||
+        gameState === GameState.PLAYING ||
+        gameState === GameState.COUNTDOWN
+      }
       isOpen={isOpen}
       onClose={onClose}
     >
       <div className="flex flex-col gap-4">
-        {gameState === GameState.PLAYING && (
+        {(gameState === GameState.PLAYING ||
+          gameState === GameState.COUNTDOWN) && (
           <div className="text-warning text-sm text-center">
             Name changes are disabled during active gameplay.
           </div>
@@ -111,7 +116,10 @@ function NameModal({
           placeholder="Enter your name"
           className="input input-bordered w-full text-center"
           maxLength={16}
-          disabled={gameState === GameState.PLAYING}
+          disabled={
+            gameState === GameState.PLAYING ||
+            gameState === GameState.COUNTDOWN
+          }
         />
       </div>
     </Modal>

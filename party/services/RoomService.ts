@@ -122,7 +122,9 @@ export class RoomService {
       id: conn.id,
       name,
       lives: 2,
-      isAlive: this.gameState !== GameState.PLAYING,
+      isAlive:
+        this.gameState !== GameState.PLAYING &&
+        this.gameState !== GameState.COUNTDOWN,
       wins: 0,
       usedLetters: [],
       isAdmin,

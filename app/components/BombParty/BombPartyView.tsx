@@ -125,6 +125,7 @@ export default function BombPartyView({
   }
 
   const isMyTurn = socket.id === activePlayerId
+  const wordLength = isMyTurn ? input.length : activePlayerInput.length
 
   return (
     <>
@@ -169,6 +170,29 @@ export default function BombPartyView({
               <div className="mt-4 opacity-70 animate-pulse">
                 Waiting for the admin to start...
               </div>
+            )}
+          </div>
+        )}
+
+        {gameState === GameState.COUNTDOWN && serverState.countdown != null && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-lg opacity-70 mb-4">Get ready!</p>
+            <div className="text-8xl font-black tabular-nums text-primary animate-bounce">
+              {serverState.countdown}
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  socket.send(
+                    JSON.stringify({
+                      type: BombPartyClientMessageType.START_GAME,
+                    }),
+                  )
+                }
+                className="btn btn-sm btn-warning mt-6 opacity-70"
+              >
+                Skip
+              </button>
             )}
           </div>
         )}
@@ -227,25 +251,31 @@ export default function BombPartyView({
                   {tempError}
                 </span>
               )}
-
-              <input
-                ref={inputRef}
-                value={isMyTurn ? input : activePlayerInput}
-                onChange={(e) => isMyTurn && handleTyping(e.target.value)}
-                placeholder={
-                  isMyTurn
-                    ? "Type a word!"
-                    : `${
-                        players.find((p) => p.id === activePlayerId)?.name
-                      } is typing...`
-                }
-                disabled={!isMyTurn}
-                autoFocus={isMyTurn}
-                className={`input input-bordered w-full max-w-md text-center text-xl ${
-                  isMyTurn ? "input-primary ring-2 ring-primary/50" : ""
-                }`}
-                autoComplete="off"
-              />
+              <label className="input input-bordered w-full max-w-md text-center text-xl">
+                <input
+                  ref={inputRef}
+                  value={isMyTurn ? input : activePlayerInput}
+                  onChange={(e) => isMyTurn && handleTyping(e.target.value)}
+                  placeholder={
+                    isMyTurn
+                      ? "Type a word!"
+                      : `${
+                          players.find((p) => p.id === activePlayerId)?.name
+                        } is typing...`
+                  }
+                  disabled={!isMyTurn}
+                  autoFocus={isMyTurn}
+                  autoComplete="off"
+                />
+                <span
+                  className={clsx(
+                    "badge badge-neutral badge-xs",
+                    wordLength >= bonusWordLength && "badge-success",
+                  )}
+                >
+                  {wordLength}
+                </span>
+              </label>
             </form>
             {isAdmin && (
               <button

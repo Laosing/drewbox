@@ -139,6 +139,7 @@ export enum GameMode {
 
 export enum GameState {
   LOBBY = "LOBBY",
+  COUNTDOWN = "COUNTDOWN",
   PLAYING = "PLAYING",
   ENDED = "ENDED",
 }
@@ -229,6 +230,7 @@ export interface BombPartyServerState extends BaseServerState {
   hardModeStartRound: number
   round: number
   winnerId: string | null
+  countdown: number | null
 }
 
 export interface WordleServerState extends BaseServerState {
