@@ -79,9 +79,10 @@ export class BombPartyGame extends BaseGame {
   onTick(): void {
     if (this.context.gameState === GameState.COUNTDOWN) {
       this.countdown! -= 1
-      this.context.broadcastState()
       if (this.countdown! <= 0) {
         this.startGame()
+      } else {
+        this.context.broadcastState()
       }
       return
     }
@@ -195,7 +196,7 @@ export class BombPartyGame extends BaseGame {
         this.endGame()
         return
       }
-      this.currentSyllable = this.context.dictionary.getRandomSyllable(50)
+      this.currentSyllable = this.context.dictionary.getRandomSyllable()
       this.syllableTurnCount = 0
     }
 
@@ -331,7 +332,7 @@ export class BombPartyGame extends BaseGame {
       this.activePlayerId === playerId &&
       typeof word === "string"
     ) {
-      this.handleWordSubmission(playerId, word)
+      this.handleWordSubmission(playerId, word.substring(0, 50))
     }
   }
 
@@ -344,7 +345,7 @@ export class BombPartyGame extends BaseGame {
       this.antiBot.trackTyping(playerId)
       this.broadcast({
         type: ServerMessageType.TYPING_UPDATE,
-        text: text,
+        text: text.substring(0, 50),
         playerId: playerId,
       })
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useThrottledCallback } from "../../hooks/useThrottledCallback"
 import PartySocket from "partysocket"
 import {
   BombPartyClientMessageType,
@@ -114,14 +115,18 @@ export default function BombPartyView({
     setInput("")
   }
 
-  const handleTyping = (val: string) => {
-    setInput(val)
+  const sendTypingUpdate = useThrottledCallback((text: string) => {
     socket.send(
       JSON.stringify({
         type: BombPartyClientMessageType.UPDATE_TYPING,
-        text: val,
+        text,
       }),
     )
+  }, 100)
+
+  const handleTyping = (val: string) => {
+    setInput(val)
+    sendTypingUpdate(val)
   }
 
   const isMyTurn = socket.id === activePlayerId

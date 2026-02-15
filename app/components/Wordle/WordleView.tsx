@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useThrottledCallback } from "../../hooks/useThrottledCallback"
 import PartySocket from "partysocket"
 import {
   WordleClientMessageType,
@@ -104,6 +105,15 @@ export default function WordleView({
     setInput("")
   }
 
+  const sendTypingUpdate = useThrottledCallback((text: string) => {
+    socket.send(
+      JSON.stringify({
+        type: WordleClientMessageType.UPDATE_TYPING,
+        text,
+      }),
+    )
+  }, 100)
+
   const handleTyping = (val: string) => {
     // Only allow letters and max wordLength chars
     const cleaned = val
@@ -111,12 +121,7 @@ export default function WordleView({
       .slice(0, wordLength)
       .toUpperCase()
     setInput(cleaned)
-    socket.send(
-      JSON.stringify({
-        type: WordleClientMessageType.UPDATE_TYPING,
-        text: cleaned,
-      }),
-    )
+    sendTypingUpdate(cleaned)
   }
 
   const isMyTurn = socket.id === activePlayerId

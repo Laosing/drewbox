@@ -74,15 +74,9 @@ describe("DictionaryService", () => {
   it("should generate random syllables", async () => {
     const dict = new DictionaryService()
 
-    // Create enough words to ensure we find a syllable
-    const mockWords = [
-      "ACTION",
-      "ACTOR",
-      "REACT",
-      "FACT",
-      "PACT",
-      "TACTIC",
-    ].join("\n")
+    // Generate enough words sharing a common syllable to meet the threshold (50)
+    const baseWords = Array.from({ length: 60 }, (_, i) => `TEST${i.toString().padStart(3, "0")}`)
+    const mockWords = baseWords.join("\n")
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
@@ -92,8 +86,7 @@ describe("DictionaryService", () => {
 
     await dict.load("http://host")
 
-    // Reduce minWords so we can find a match in our small set
-    const syl = dict.getRandomSyllable(2)
+    const syl = dict.getRandomSyllable()
     expect(syl.length).toBeGreaterThanOrEqual(2)
   })
 

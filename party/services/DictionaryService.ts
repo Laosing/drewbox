@@ -7,7 +7,28 @@ const logger = createLogger("Dictionary")
 // This saves ~40MB RAM per additional room on the same worker
 let SHARED_WORDS: string[] = []
 let SHARED_WORD_SET: Set<string> = new Set()
+let SHARED_VALID_SYLLABLES: string[] = []
 let LOADING_PROMISE: Promise<void> | null = null
+
+function buildValidSyllables(words: string[], minWords: number): string[] {
+  const counts = new Map<string, number>()
+  for (const word of words) {
+    if (word.length < 2) continue
+    const seen = new Set<string>()
+    for (let i = 0; i <= word.length - 2; i++) {
+      seen.add(word.substring(i, i + 2))
+      if (i <= word.length - 3) {
+        seen.add(word.substring(i, i + 3))
+      }
+    }
+    for (const s of seen) counts.set(s, (counts.get(s) || 0) + 1)
+  }
+  const valid: string[] = []
+  for (const [syllable, count] of counts) {
+    if (count >= minWords) valid.push(syllable)
+  }
+  return valid
+}
 
 export class DictionaryService implements IDictionaryRepository {
   public ready: Promise<void>
@@ -55,8 +76,9 @@ export class DictionaryService implements IDictionaryRepository {
           .map((w) => w.trim().toUpperCase())
           .filter((w) => w.length > 0)
         SHARED_WORD_SET = new Set(SHARED_WORDS)
+        SHARED_VALID_SYLLABLES = buildValidSyllables(SHARED_WORDS, 50)
 
-        logger.info(`Dictionary loaded. ${SHARED_WORDS.length} words.`)
+        logger.info(`Dictionary loaded. ${SHARED_WORDS.length} words, ${SHARED_VALID_SYLLABLES.length} valid syllables indexed.`)
       } catch (e: any) {
         logger.error("Failed to load dictionary", e)
         LOADING_PROMISE = null // Reset so we can retry
@@ -90,33 +112,9 @@ export class DictionaryService implements IDictionaryRepository {
     return { valid: true }
   }
 
-  getRandomSyllable(minWords: number = 50): string {
-    if (SHARED_WORDS.length === 0) throw new Error("Dictionary not loaded")
-
-    let attempts = 0
-    while (attempts < 50) {
-      const word = SHARED_WORDS[Math.floor(Math.random() * SHARED_WORDS.length)]
-      if (!word || word.length < 3) continue
-
-      const len = Math.random() < 0.6 ? 2 : 3
-      if (word.length < len) continue
-
-      const start = Math.floor(Math.random() * (word.length - len + 1))
-      const syllable = word.substring(start, start + len)
-
-      let count = 0
-      for (const w of SHARED_WORDS) {
-        if (w.includes(syllable)) {
-          count++
-          if (count >= minWords) break
-        }
-      }
-
-      if (count >= minWords) return syllable
-      attempts++
-    }
-
-    return "ING"
+  getRandomSyllable(): string {
+    if (SHARED_VALID_SYLLABLES.length === 0) throw new Error("Dictionary not loaded")
+    return SHARED_VALID_SYLLABLES[Math.floor(Math.random() * SHARED_VALID_SYLLABLES.length)]
   }
 
   getRandomWord(length: number = 5): string {
@@ -148,6 +146,7 @@ export class DictionaryService implements IDictionaryRepository {
   static _reset() {
     SHARED_WORDS = []
     SHARED_WORD_SET = new Set()
+    SHARED_VALID_SYLLABLES = []
     LOADING_PROMISE = null
   }
 }

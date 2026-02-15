@@ -151,7 +151,11 @@ export class RoomService {
     this.chat.cleanup(connectionId)
     this.players.delete(connectionId)
 
-    this.activeGame?.onPlayerLeave(connectionId)
+    try {
+      this.activeGame?.onPlayerLeave(connectionId)
+    } catch (e) {
+      this.logger.error("Error in onPlayerLeave", e)
+    }
 
     // Reassign Admin
     if (p.isAdmin && this.players.size > 0) {

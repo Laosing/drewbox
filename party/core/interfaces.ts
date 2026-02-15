@@ -5,7 +5,7 @@ export interface IDictionaryRepository {
   ready: Promise<void>
   load(origin: string): Promise<{ success: boolean; error?: string }>
   isValid(word: string, syllable: string): { valid: boolean; reason?: string }
-  getRandomSyllable(minWords?: number): string
+  getRandomSyllable(): string
   getRandomWord(length?: number): string
   isWordValid(word: string): boolean
 }

@@ -40,6 +40,7 @@ export class WordChainGame extends BaseGame {
     }
 
     this.context.gameState = GameState.PLAYING
+    this.context.initialAliveCount = this.players.size
     this.usedWords = new Set()
     this.round = 1
     this.minLength = 3
@@ -120,7 +121,7 @@ export class WordChainGame extends BaseGame {
     ) {
       return
     }
-    this.handleGuess(playerId, word)
+    this.handleGuess(playerId, word.substring(0, 50))
   }
 
   public updateTyping(playerId: string, text: string) {
@@ -131,7 +132,7 @@ export class WordChainGame extends BaseGame {
       this.antiBot.trackTyping(playerId)
       this.broadcast({
         type: ServerMessageType.TYPING_UPDATE,
-        text: text,
+        text: text.substring(0, 50),
       })
     }
   }

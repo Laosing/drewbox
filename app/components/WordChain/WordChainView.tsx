@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react"
+import { useThrottledCallback } from "../../hooks/useThrottledCallback"
 
 import {
   WordChainClientMessageType,
@@ -113,15 +114,18 @@ export default function WordChainView({
     // Refocus after submit (though next turn change handles it if we are still active, but usually turn passes)
   }
 
-  // Handle typing to show status?
-  useEffect(() => {
+  const sendTypingUpdate = useThrottledCallback((text: string) => {
     socket.send(
       JSON.stringify({
         type: WordChainClientMessageType.UPDATE_TYPING,
-        text: input,
+        text,
       }),
     )
-  }, [input, socket])
+  }, 100)
+
+  useEffect(() => {
+    sendTypingUpdate(input)
+  }, [input, sendTypingUpdate])
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">

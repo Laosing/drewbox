@@ -119,7 +119,7 @@ export class WordleGame extends BaseGame {
       this.context.gameState === GameState.PLAYING &&
       this.activePlayerId === playerId
     ) {
-      this.handleGuess(playerId, word)
+      this.handleGuess(playerId, word.substring(0, 30))
     }
   }
 
@@ -131,7 +131,7 @@ export class WordleGame extends BaseGame {
       this.antiBot.trackTyping(playerId)
       this.broadcast({
         type: ServerMessageType.TYPING_UPDATE,
-        text: text,
+        text: text.substring(0, 30),
       })
     }
   }

@@ -17,16 +17,28 @@ export class ModerationService {
   private lastConnectionAttempts: Map<string, number> = new Map()
   public failedPasswordAttempts: Map<string, number> = new Map()
 
+  private cleanupInterval: ReturnType<typeof setInterval>
+
   constructor(roomId: string) {
     this.logger = createLogger(`Moderation [${roomId}]`)
 
-    // Periodic cleanup of connection attempts
-    setInterval(() => {
+    // Periodic cleanup of stale rate limiting data
+    this.cleanupInterval = setInterval(() => {
       const now = Date.now()
       for (const [ip, time] of this.lastConnectionAttempts) {
         if (now - time > 10000) this.lastConnectionAttempts.delete(ip)
       }
-    }, 1000)
+      // Clean up stale password attempts after 5 minutes
+      for (const [ip] of this.failedPasswordAttempts) {
+        if (!this.blockedIPs.has(ip)) {
+          this.failedPasswordAttempts.delete(ip)
+        }
+      }
+    }, 10000)
+  }
+
+  dispose() {
+    clearInterval(this.cleanupInterval)
   }
 
   /**
@@ -74,7 +86,7 @@ export class ModerationService {
 
   removeConnection(connectionId: string) {
     this.connectionIPs.delete(connectionId)
-    // We keep blockedIPs
+    this.connectionClientIds.delete(connectionId)
   }
 
   handlePasswordFailure(ip: string): { failures: number; banned: boolean } {
