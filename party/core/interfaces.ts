@@ -20,6 +20,7 @@ export interface IRoomContext {
   roomId: string
   dictionaryReady: boolean
   gameMode: GameMode
+  isPrivate: boolean
 
   // Mutable State (Shared)
   gameState: any // Start loose, we can tighten later

@@ -20,7 +20,9 @@ export abstract class BaseGame implements IGame {
   constructor(context: IRoomContext) {
     this.context = context
     this.gameTimer = new GameTimer(() => this.onTick())
-    this.logger = createLogger(this.constructor.name, context.roomId)
+    this.logger = createLogger(this.constructor.name, context.roomId, () => ({
+      isPrivate: context.isPrivate,
+    }))
   }
 
   abstract onStart(): void

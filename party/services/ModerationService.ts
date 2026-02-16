@@ -19,8 +19,8 @@ export class ModerationService {
 
   private cleanupInterval: ReturnType<typeof setInterval>
 
-  constructor(roomId: string) {
-    this.logger = createLogger(`Moderation [${roomId}]`, roomId)
+  constructor(roomId: string, metadata?: () => Record<string, any>) {
+    this.logger = createLogger("Moderation", roomId, metadata)
 
     // Periodic cleanup of stale rate limiting data
     this.cleanupInterval = setInterval(() => {

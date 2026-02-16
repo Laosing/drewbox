@@ -14,13 +14,19 @@ const SeverityMap: Record<LogLevel, { text: string; number: number }> = {
 export class Logger {
   private namespace: string
   private roomId?: string
+  private metadata?: () => Record<string, any>
   private static remoteUrl?: string
   private static remoteToken?: string
   private static serviceName: string = "drewbox"
 
-  constructor(namespace: string, roomId?: string) {
+  constructor(
+    namespace: string,
+    roomId?: string,
+    metadata?: () => Record<string, any>,
+  ) {
     this.namespace = namespace
     this.roomId = roomId
+    this.metadata = metadata
   }
 
   /**
@@ -42,6 +48,7 @@ export class Logger {
       level: level.toUpperCase(),
       ns: this.namespace,
       roomId: this.roomId,
+      ...(this.metadata ? this.metadata() : {}),
       msg: message,
       data: args.length > 0 ? (args.length === 1 ? args[0] : args) : undefined,
     }
@@ -68,6 +75,7 @@ export class Logger {
       attributes: {
         namespace: this.namespace,
         roomId: this.roomId,
+        ...(this.metadata ? this.metadata() : {}),
         // If args exist, attempt to merge them or put them in a data key
         ...(args.length === 1 && typeof args[0] === "object"
           ? args[0]
@@ -110,5 +118,8 @@ export class Logger {
   }
 }
 
-export const createLogger = (namespace: string, roomId?: string) =>
-  new Logger(namespace, roomId)
+export const createLogger = (
+  namespace: string,
+  roomId?: string,
+  metadata?: () => Record<string, any>,
+) => new Logger(namespace, roomId, metadata)

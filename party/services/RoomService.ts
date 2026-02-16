@@ -43,7 +43,9 @@ export class RoomService {
     this.players = playersMap
     this.gameMode = initialGameMode
 
-    this.logger = createLogger(`RoomService [${room.id}]`, room.id)
+    this.logger = createLogger("RoomService", room.id, () => ({
+      isPrivate: !!this.password,
+    }))
 
     // Injected Dependencies
     this.moderation = moderationService

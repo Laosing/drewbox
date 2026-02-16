@@ -13,7 +13,9 @@ export class ChatService {
   > = new Map()
 
   constructor(roomId: string, context: IRoomContext) {
-    this.logger = createLogger(`Chat [${roomId}]`, roomId)
+    this.logger = createLogger("Chat", roomId, () => ({
+      isPrivate: context.isPrivate,
+    }))
     this.context = context
   }
 

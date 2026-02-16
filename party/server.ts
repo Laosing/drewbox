@@ -56,6 +56,10 @@ export default class Server implements Party.Server, IRoomContext {
     this.roomService.gameState = state
   }
 
+  get isPrivate(): boolean {
+    return !!this.roomService?.password
+  }
+
   get roomId(): string {
     return this.room.id
   }
@@ -73,12 +77,16 @@ export default class Server implements Party.Server, IRoomContext {
       })
     }
 
-    this.logger = createLogger(`Server [${room.id}]`, room.id)
+    this.logger = createLogger("Server", room.id, () => ({
+      isPrivate: !!this.roomService?.password,
+    }))
     this.dictionary = new DictionaryService()
 
     // Instantiate Services (DI)
     const chatService = new ChatService(room.id, this)
-    const moderationService = new ModerationService(room.id)
+    const moderationService = new ModerationService(room.id, () => ({
+      isPrivate: this.isPrivate,
+    }))
 
     // Instantiate core service
     // RoomService manipulates 'this.players' (passed by reference)
