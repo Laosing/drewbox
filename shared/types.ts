@@ -134,6 +134,7 @@ export interface BombPartyServerState extends BaseServerState {
   maxTimer: number
   startingLives: number
   syllableChangeThreshold: number
+  bonusLettersEnabled: boolean
   bonusWordLength: number
   hardModeStartRound: number
   round: number

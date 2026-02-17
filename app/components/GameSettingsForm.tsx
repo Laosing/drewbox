@@ -49,6 +49,11 @@ export function GameSettingsForm({
             serverState.syllableChangeThreshold ??
             GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
           }
+          bonusLettersEnabled={
+            pendingSettings.bonusLettersEnabled ??
+            serverState.bonusLettersEnabled ??
+            true
+          }
           bonusWordLength={
             pendingSettings.bonusWordLength ??
             serverState.bonusWordLength ??

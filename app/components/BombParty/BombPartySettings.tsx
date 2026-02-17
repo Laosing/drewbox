@@ -5,6 +5,7 @@ interface BombPartySettingsProps {
   startingLives: number
   maxTimer: number
   syllableChangeThreshold: number
+  bonusLettersEnabled?: boolean
   bonusWordLength: number
   hardModeStartRound: number
   chatEnabled?: boolean
@@ -16,6 +17,7 @@ export default function BombPartySettings({
   startingLives,
   maxTimer,
   syllableChangeThreshold,
+  bonusLettersEnabled = true,
   bonusWordLength,
   hardModeStartRound,
   chatEnabled,
@@ -74,18 +76,28 @@ export default function BombPartySettings({
         helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN} and ${GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX}`}
       />
 
-      <NumberInput
-        label="Bonus letter word length"
-        value={bonusWordLength}
-        min={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN}
-        max={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}
-        onChange={(val) =>
-          onUpdate({
-            bonusWordLength: val || GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT,
-          })
-        }
-        helperText={`Length between ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN} and ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}. Determines word length required to earn a free letter.`}
+      <ToggleInput
+        label="Enable Bonus Letters"
+        checked={bonusLettersEnabled}
+        onChange={(checked) => onUpdate({ bonusLettersEnabled: checked })}
+        helperText="Award a random missing letter when a long word is submitted."
       />
+
+      {bonusLettersEnabled && (
+        <NumberInput
+          label="Bonus letter word length"
+          value={bonusWordLength}
+          min={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN}
+          max={GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}
+          onChange={(val) =>
+            onUpdate({
+              bonusWordLength:
+                val || GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT,
+            })
+          }
+          helperText={`Length between ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN} and ${GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX}. Determines word length required to earn a free letter.`}
+        />
+      )}
 
       <NumberInput
         label="Hard mode after number of rounds"

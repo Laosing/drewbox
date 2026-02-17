@@ -45,6 +45,7 @@ export const BombPartySettingsSchema = z.object({
     .min(GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MIN)
     .max(GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.MAX)
     .optional(),
+  bonusLettersEnabled: z.boolean().optional(),
   bonusWordLength: z
     .number()
     .min(GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN)

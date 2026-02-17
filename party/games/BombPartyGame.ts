@@ -19,6 +19,7 @@ export class BombPartyGame extends BaseGame {
   startingLives: number = GAME_CONFIG.BOMB_PARTY.LIVES.DEFAULT
   syllableChangeThreshold: number =
     GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
+  bonusLettersEnabled: boolean = true
   bonusWordLength: number = GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT
   hardModeStartRound: number = GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.DEFAULT
   syllableTurnCount: number = 0
@@ -379,6 +380,8 @@ export class BombPartyGame extends BaseGame {
       if (s.maxTimer !== undefined) this.maxTimer = s.maxTimer
       if (s.syllableChangeThreshold !== undefined)
         this.syllableChangeThreshold = s.syllableChangeThreshold
+      if (s.bonusLettersEnabled !== undefined)
+        this.bonusLettersEnabled = s.bonusLettersEnabled
       if (s.bonusWordLength !== undefined)
         this.bonusWordLength = s.bonusWordLength
       if (s.hardModeStartRound !== undefined)
@@ -424,7 +427,7 @@ export class BombPartyGame extends BaseGame {
         }
 
         // NEW: Bonus Letter Feature (Configurable Length)
-        if (word.length >= this.bonusWordLength && p.usedLetters.length < 26) {
+        if (this.bonusLettersEnabled && word.length >= this.bonusWordLength && p.usedLetters.length < 26) {
           const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
           const missing = alphabet.filter((c) => !p.usedLetters.includes(c))
           if (missing.length > 0) {
@@ -482,6 +485,7 @@ export class BombPartyGame extends BaseGame {
       maxTimer: this.maxTimer,
       startingLives: this.startingLives,
       syllableChangeThreshold: this.syllableChangeThreshold,
+      bonusLettersEnabled: this.bonusLettersEnabled,
       bonusWordLength: this.bonusWordLength,
       hardModeStartRound: this.hardModeStartRound,
       dictionaryLoaded: this.context.dictionaryReady,
