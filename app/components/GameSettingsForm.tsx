@@ -59,6 +59,11 @@ export function GameSettingsForm({
             serverState.bonusWordLength ??
             GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT
           }
+          hardModeEnabled={
+            pendingSettings.hardModeEnabled ??
+            serverState.hardModeEnabled ??
+            true
+          }
           hardModeStartRound={
             pendingSettings.hardModeStartRound ??
             serverState.hardModeStartRound ??

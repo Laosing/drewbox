@@ -7,6 +7,7 @@ interface BombPartySettingsProps {
   syllableChangeThreshold: number
   bonusLettersEnabled?: boolean
   bonusWordLength: number
+  hardModeEnabled?: boolean
   hardModeStartRound: number
   chatEnabled?: boolean
   gameLogEnabled?: boolean
@@ -19,6 +20,7 @@ export default function BombPartySettings({
   syllableChangeThreshold,
   bonusLettersEnabled = true,
   bonusWordLength,
+  hardModeEnabled = true,
   hardModeStartRound,
   chatEnabled,
   gameLogEnabled,
@@ -99,19 +101,28 @@ export default function BombPartySettings({
         />
       )}
 
-      <NumberInput
-        label="Hard mode after number of rounds"
-        value={hardModeStartRound}
-        min={GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MIN}
-        max={GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MAX}
-        onChange={(val) =>
-          onUpdate({
-            hardModeStartRound:
-              val || GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.DEFAULT,
-          })
-        }
-        helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MIN} and ${GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MAX}. The timer will be randomized after this round.`}
+      <ToggleInput
+        label="Enable Hard Mode"
+        checked={hardModeEnabled}
+        onChange={(checked) => onUpdate({ hardModeEnabled: checked })}
+        helperText="Randomizes the timer after a set number of rounds."
       />
+
+      {hardModeEnabled && (
+        <NumberInput
+          label="Hard mode after number of rounds"
+          value={hardModeStartRound}
+          min={GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MIN}
+          max={GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MAX}
+          onChange={(val) =>
+            onUpdate({
+              hardModeStartRound:
+                val || GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.DEFAULT,
+            })
+          }
+          helperText={`Value between ${GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MIN} and ${GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MAX}. The timer will be randomized after this round.`}
+        />
+      )}
     </>
   )
 }

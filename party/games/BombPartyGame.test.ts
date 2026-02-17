@@ -105,6 +105,8 @@ describe("Bomb Party Game Logic", () => {
     expect(game.hardModeStartRound).toBe(
       GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.DEFAULT,
     )
+    expect(game.bonusLettersEnabled).toBe(true)
+    expect(game.hardModeEnabled).toBe(true)
   })
 
   it("should handle valid word submission", async () => {
@@ -255,6 +257,40 @@ describe("Bomb Party Game Logic", () => {
     vi.useRealTimers()
   })
 
+  it("should not award bonus letters when bonusLettersEnabled is false", async () => {
+    vi.useFakeTimers()
+    const host = await joinPlayer("host")
+    await joinPlayer("p2")
+
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
+    game.requestStartGame("host")
+    skipCountdown(game)
+    const activeId = game.activePlayerId!
+    const player = server.players.get(activeId)!
+
+    game.bonusLettersEnabled = false
+    game.bonusWordLength = 5
+    game.currentSyllable = "TEST"
+
+    vi.advanceTimersByTime(300)
+    game.updateTyping(activeId, "T")
+    game.updateTyping(activeId, "TE")
+
+    const lettersBefore = player.usedLetters.length
+    game.submitWord(activeId, "TESTING") // length 7 > 5
+
+    // Letters from the word itself are still added, but no bonus letter on top
+    const lettersFromWord = "TESTING".split("").filter((c, i, a) => a.indexOf(c) === i).length
+    expect(player.usedLetters.length).toBe(lettersBefore + lettersFromWord)
+    expect(player.bonusLetters ?? []).toHaveLength(0)
+    expect(server.room.broadcast).not.toHaveBeenCalledWith(
+      expect.stringContaining(ServerMessageType.BONUS),
+    )
+
+    vi.useRealTimers()
+  })
+
   it("should activate hard mode after X rounds", async () => {
     const host = await joinPlayer("host")
     await joinPlayer("p2")
@@ -281,6 +317,27 @@ describe("Bomb Party Game Logic", () => {
     // Run it multiple times to ensure randomness if possible, but one check validates logic path
   })
 
+  it("should not randomize timer when hardModeEnabled is false", async () => {
+    const host = await joinPlayer("host")
+    await joinPlayer("p2")
+
+    server.roomService.activeGame = new BombPartyGame(server)
+    const game = server.roomService.activeGame as BombPartyGame
+    game.requestStartGame("host")
+    skipCountdown(game)
+
+    game.hardModeEnabled = false
+    game.hardModeStartRound = 3
+    game.maxTimer = 20
+
+    // Advance past hard mode threshold
+    game.round = 4
+    game.nextTurn(false)
+
+    // Timer should always equal maxTimer when hard mode is disabled
+    expect(game.timer).toBe(game.maxTimer)
+  })
+
   it("should update settings when admin requests", async () => {
     const host = await joinPlayer("host")
     server.roomService.activeGame = new BombPartyGame(server)
@@ -291,6 +348,8 @@ describe("Bomb Party Game Logic", () => {
       startingLives: 1,
       hardModeStartRound: 5,
       syllableChangeThreshold: 10,
+      bonusLettersEnabled: false,
+      hardModeEnabled: false,
     }
 
     game.updateSettings("host", newSettings)
@@ -299,6 +358,8 @@ describe("Bomb Party Game Logic", () => {
     expect(game.startingLives).toBe(1)
     expect(game.hardModeStartRound).toBe(5)
     expect(game.syllableChangeThreshold).toBe(10)
+    expect(game.bonusLettersEnabled).toBe(false)
+    expect(game.hardModeEnabled).toBe(false)
   })
 
   it("should ignore settings update from non-admin", async () => {

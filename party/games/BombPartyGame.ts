@@ -21,6 +21,7 @@ export class BombPartyGame extends BaseGame {
     GAME_CONFIG.BOMB_PARTY.SYLLABLE_CHANGE.DEFAULT
   bonusLettersEnabled: boolean = true
   bonusWordLength: number = GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.DEFAULT
+  hardModeEnabled: boolean = true
   hardModeStartRound: number = GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.DEFAULT
   syllableTurnCount: number = 0
   round: number = 0 // Track current round
@@ -223,7 +224,7 @@ export class BombPartyGame extends BaseGame {
     this.timer = this.maxTimer
 
     // HARD MODE: After X rounds, timer is random and shorter!
-    if (this.round > this.hardModeStartRound) {
+    if (this.hardModeEnabled && this.round > this.hardModeStartRound) {
       // Random timer between Max/2 and Max
       const min = Math.floor(this.maxTimer / 2)
       // Range is the difference between max and min
@@ -384,6 +385,7 @@ export class BombPartyGame extends BaseGame {
         this.bonusLettersEnabled = s.bonusLettersEnabled
       if (s.bonusWordLength !== undefined)
         this.bonusWordLength = s.bonusWordLength
+      if (s.hardModeEnabled !== undefined) this.hardModeEnabled = s.hardModeEnabled
       if (s.hardModeStartRound !== undefined)
         this.hardModeStartRound = s.hardModeStartRound
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
@@ -487,6 +489,7 @@ export class BombPartyGame extends BaseGame {
       syllableChangeThreshold: this.syllableChangeThreshold,
       bonusLettersEnabled: this.bonusLettersEnabled,
       bonusWordLength: this.bonusWordLength,
+      hardModeEnabled: this.hardModeEnabled,
       hardModeStartRound: this.hardModeStartRound,
       dictionaryLoaded: this.context.dictionaryReady,
       chatEnabled: this.chatEnabled,

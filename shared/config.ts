@@ -51,6 +51,7 @@ export const BombPartySettingsSchema = z.object({
     .min(GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MIN)
     .max(GAME_CONFIG.BOMB_PARTY.BONUS_LENGTH.MAX)
     .optional(),
+  hardModeEnabled: z.boolean().optional(),
   hardModeStartRound: z
     .number()
     .min(GAME_CONFIG.BOMB_PARTY.HARD_MODE_START.MIN)

@@ -58,6 +58,7 @@ export default function BombPartyView({
     bonusWordLength,
     dictionaryLoaded,
     round,
+    hardModeEnabled,
     hardModeStartRound,
     winnerId,
   } = serverState
@@ -152,8 +153,12 @@ export default function BombPartyView({
                 `Timer: ${maxTimer}s`,
                 `Lives: ${startingLives}`,
                 `Change syllable after: ${syllableChangeThreshold} tries`,
-                `Bonus letter for: ${bonusWordLength}+ characters`,
-                `Hard mode after: ${hardModeStartRound} rounds`,
+                ...(serverState.bonusLettersEnabled
+                  ? [`Bonus letter for: ${bonusWordLength}+ letters`]
+                  : ["Bonus letters: off"]),
+                ...(hardModeEnabled
+                  ? [`Hard mode after: ${hardModeStartRound} rounds`]
+                  : ["Hard mode: off"]),
               ]}
             />
 
@@ -208,7 +213,9 @@ export default function BombPartyView({
               <div
                 className={clsx(
                   "badge badge-md font-bold",
-                  round > hardModeStartRound && "badge-warning",
+                  hardModeEnabled &&
+                    round > hardModeStartRound &&
+                    "badge-warning",
                 )}
               >
                 Round {round}
