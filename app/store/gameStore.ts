@@ -76,6 +76,8 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
         gameLogEnabled: data.gameLogEnabled ?? prev.gameLogEnabled,
         serverState: { ...prev.serverState, ...data },
       }))
+    } else if (data.type === ServerMessageType.KICK) {
+      window.location.href = "/"
     } else if (data.type === ServerMessageType.ERROR) {
       if (!data.hide) get().addLog(`Error: ${data.message}`)
     } else if (data.type === ServerMessageType.BONUS) {

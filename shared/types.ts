@@ -15,6 +15,7 @@ export enum ServerMessageType {
   ROOM_LIST = "ROOM_LIST",
   SYSTEM_MESSAGE = "SYSTEM_MESSAGE",
   VALID_WORD = "VALID_WORD",
+  KICK = "KICK",
 }
 
 export type GuessResult = "correct" | "present" | "absent"

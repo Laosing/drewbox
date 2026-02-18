@@ -13,6 +13,9 @@ import { GameRegistry } from "../core/GameRegistry"
 import { ModerationService } from "./ModerationService"
 import { ChatService } from "./ChatService"
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const IDLE_CHECK_INTERVAL_MS = 30 * 1000 // check every 30 seconds
+
 export class RoomService {
   private logger: Logger
   private room: Party.Room
@@ -29,6 +32,9 @@ export class RoomService {
   public gameState: GameState = GameState.LOBBY
   public gameMode: GameMode = GameMode.BOMB_PARTY
   public password?: string
+
+  private lastActivity: Map<string, number> = new Map()
+  private idleCheckInterval: ReturnType<typeof setInterval> | null = null
 
   constructor(
     room: Party.Room,
@@ -50,6 +56,42 @@ export class RoomService {
     // Injected Dependencies
     this.moderation = moderationService
     this.chat = chatService
+
+    this.idleCheckInterval = setInterval(
+      () => this.checkIdlePlayers(),
+      IDLE_CHECK_INTERVAL_MS,
+    )
+  }
+
+  private checkIdlePlayers() {
+    if (this.players.size === 0) return
+    const now = Date.now()
+    this.logger.debug("Checking for idle players", {
+      playerCount: this.players.size,
+    })
+    for (const [connectionId, lastSeen] of this.lastActivity) {
+      if (now - lastSeen >= IDLE_TIMEOUT_MS) {
+        const p = this.players.get(connectionId)
+        if (!p) {
+          this.lastActivity.delete(connectionId)
+          continue
+        }
+        this.logger.info("Kicking idle player", {
+          playerId: connectionId,
+          name: p.name,
+          idleMs: now - lastSeen,
+        })
+        const conn = this.room.getConnection(connectionId)
+        conn?.send(
+          JSON.stringify({
+            type: ServerMessageType.KICK,
+            message: "You were removed for inactivity.",
+          }),
+        )
+        conn?.close(4001, "Idle timeout")
+        this.handleDisconnect(connectionId)
+      }
+    }
   }
 
   // --- Connection Lifecycle ---
@@ -144,6 +186,7 @@ export class RoomService {
     }
 
     this.players.set(conn.id, newPlayer)
+    this.lastActivity.set(conn.id, Date.now())
 
     this.logger.info("Player joined room", {
       playerId: conn.id,
@@ -169,6 +212,7 @@ export class RoomService {
     this.moderation.removeConnection(connectionId)
     this.chat.cleanup(connectionId)
     this.players.delete(connectionId)
+    this.lastActivity.delete(connectionId)
 
     this.logger.info("Player disconnected", {
       playerId: connectionId,
@@ -210,6 +254,8 @@ export class RoomService {
   public handleMessage(message: string, sender: Party.Connection) {
     // 1. Rate Limiting (Simple)
     // Could move to ModerationService but simple count is fine here or in Server
+
+    this.lastActivity.set(sender.id, Date.now())
 
     try {
       const data = JSON.parse(message) as ClientMessage
