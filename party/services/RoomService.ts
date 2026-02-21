@@ -148,19 +148,13 @@ export class RoomService {
     if (!this.activeGame) {
       let mode = this.gameMode
       if (this.players.size === 0) {
-        // If room is empty, check storage or param
-        const storedMode = (await this.room.storage.get("gameMode")) as GameMode
+        // If room is empty, use the URL param if provided, otherwise default
         const paramMode = url.searchParams.get("mode") as GameMode
-
-        if (storedMode) {
-          mode = storedMode
-        } else {
-          const validParam =
-            paramMode && Object.values(GameMode).includes(paramMode)
-          mode = validParam ? paramMode : GameMode.BOMB_PARTY
-          // Persist the decision
-          await this.room.storage.put("gameMode", mode)
-        }
+        const validParam =
+          paramMode && Object.values(GameMode).includes(paramMode)
+        mode = validParam ? paramMode : GameMode.BOMB_PARTY
+        // Persist the decision
+        await this.room.storage.put("gameMode", mode)
       }
       this.gameMode = mode
       this.initializeGame(this.gameMode)
