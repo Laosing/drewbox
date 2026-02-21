@@ -17,9 +17,10 @@ export const GAME_CONFIG = {
     HARD_MODE_START: { MIN: 3, MAX: 10, DEFAULT: 5 },
   },
   WORDLE: {
-    TIMER: { MIN: 5, MAX: 120, DEFAULT: 60 },
+    TIMER: { MIN: 10, MAX: 180, DEFAULT: 60 },
     ATTEMPTS: { MIN: 5, MAX: 15, DEFAULT: 5 },
     LENGTH: { MIN: 3, MAX: 15, DEFAULT: 5 },
+    FREE_HINTS: { MIN: 0, MAX: 10, DEFAULT: 3 },
   },
   WORD_CHAIN: {
     TIMER: { MIN: 5, MAX: 60, DEFAULT: 10 },
@@ -77,6 +78,12 @@ export const WordleSettingsSchema = z.object({
     .min(GAME_CONFIG.WORDLE.LENGTH.MIN)
     .max(GAME_CONFIG.WORDLE.LENGTH.MAX)
     .optional(),
+  freeHintLimit: z
+    .number()
+    .min(GAME_CONFIG.WORDLE.FREE_HINTS.MIN)
+    .max(GAME_CONFIG.WORDLE.FREE_HINTS.MAX)
+    .optional(),
+  freeHintEnabled: z.boolean().optional(),
   chatEnabled: z.boolean().optional(),
   gameLogEnabled: z.boolean().optional(),
 })

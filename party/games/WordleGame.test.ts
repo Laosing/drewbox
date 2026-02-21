@@ -283,4 +283,206 @@ describe("Wordle Game Logic", () => {
     // Should STILL be playing (maxAttempts is 5, we have 1)
     expect(server.gameState).toBe(GameState.PLAYING)
   })
+
+  it("should reveal word when game is ended", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start game
+    game.requestStartGame("host", false)
+    expect(game.targetWord).toBe("APPLE")
+    expect(game.revealedWord).toBeUndefined()
+
+    // End game
+    game.requestStopGame("host")
+    expect(server.gameState).toBe(GameState.ENDED)
+    expect(game.revealedWord).toBeUndefined()
+
+    // Reveal word
+    game.revealWord("host")
+    expect(game.revealedWord).toBe("APPLE")
+    expect(game.getState().revealedWord).toBe("APPLE")
+  })
+
+  it("should not reveal word during active game", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start game
+    game.requestStartGame("host", false)
+    expect(server.gameState).toBe(GameState.PLAYING)
+    expect(game.revealedWord).toBeUndefined()
+
+    // Try to reveal word while playing (should not work)
+    game.revealWord("host")
+    expect(game.revealedWord).toBeUndefined()
+    expect(game.getState().revealedWord).toBeUndefined()
+  })
+
+  it("should clear revealed word when starting new game", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start and end first game
+    game.requestStartGame("host", false)
+    const firstWord = game.targetWord
+    game.requestStopGame("host")
+    game.revealWord("host")
+    expect(game.revealedWord).toBe(firstWord)
+
+    // Start new game
+    game.requestStartGame("host", false)
+    expect(game.revealedWord).toBeUndefined()
+    expect(game.getState().revealedWord).toBeUndefined()
+  })
+
+  it("should provide hint when requested and not used yet", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start game
+    game.requestStartGame("host", false)
+    expect(game.targetWord).toBe("APPLE")
+    expect(game.hintUsed).toBe(false)
+    expect(game.hintLetterIndex).toBeUndefined()
+
+    // Use hint
+    game.useHint("host")
+    expect(game.hintUsed).toBe(true)
+    expect(game.hintLetterIndex).toBeDefined()
+    expect(game.hintLetterIndex).toBeGreaterThanOrEqual(0)
+    expect(game.hintLetterIndex).toBeLessThan(5)
+    expect(game.getState().hintUsed).toBe(true)
+    expect(game.getState().hintLetterIndex).toBe(game.hintLetterIndex)
+  })
+
+  it("should not provide hint twice", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start game
+    game.requestStartGame("host", false)
+
+    // Use hint first time
+    game.useHint("host")
+    const firstHintIndex = game.hintLetterIndex
+    expect(game.hintUsed).toBe(true)
+
+    // Try to use hint second time
+    game.useHint("host")
+    expect(game.hintLetterIndex).toBe(firstHintIndex) // Should not change
+  })
+
+  it("should not provide hint when disabled", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+    game.freeHintEnabled = false // Disable hint
+
+    // Start game
+    game.requestStartGame("host", false)
+    expect(game.hintUsed).toBe(false)
+
+    // Try to use hint
+    game.useHint("host")
+    expect(game.hintUsed).toBe(false)
+    expect(game.hintLetterIndex).toBeUndefined()
+  })
+
+  it("should not provide hint when game is not playing", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Game in lobby
+    expect(server.gameState).toBe(GameState.LOBBY)
+    game.useHint("host")
+    expect(game.hintUsed).toBe(false)
+
+    // Start and end game
+    game.requestStartGame("host", false)
+    game.requestStopGame("host")
+    expect(server.gameState).toBe(GameState.ENDED)
+
+    // Try to use hint when ended
+    game.useHint("host")
+    expect(game.hintUsed).toBe(false)
+  })
+
+  it("should reset hint when starting new game", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    game.antiBot = new AntiBotProtection({
+      minReactionTimeMs: 0,
+      minTypingEvents: 0,
+    })
+    server.roomService.activeGame = game
+
+    // Start first game and use hint
+    game.requestStartGame("host", false)
+    game.useHint("host")
+    expect(game.hintUsed).toBe(true)
+    expect(game.hintLetterIndex).toBeDefined()
+
+    // End game
+    game.requestStopGame("host")
+    expect(server.gameState).toBe(GameState.ENDED)
+
+    // Start new game
+    game.requestStartGame("host", false)
+    expect(game.hintUsed).toBe(false)
+    expect(game.hintLetterIndex).toBeUndefined()
+    expect(game.getState().hintUsed).toBe(false)
+    expect(game.getState().hintLetterIndex).toBeUndefined()
+  })
+
+  it("should update freeHintEnabled setting", async () => {
+    await joinPlayer("host")
+    const game = new WordleGame(server)
+    server.roomService.activeGame = game
+
+    expect(game.freeHintEnabled).toBe(true) // Default
+
+    // Update setting
+    game.updateSettings("host", { freeHintEnabled: false })
+    expect(game.freeHintEnabled).toBe(false)
+    expect(game.getState().freeHintEnabled).toBe(false)
+
+    // Turn it back on
+    game.updateSettings("host", { freeHintEnabled: true })
+    expect(game.freeHintEnabled).toBe(true)
+  })
 })

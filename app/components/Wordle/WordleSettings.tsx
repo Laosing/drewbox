@@ -6,6 +6,8 @@ interface WordleSettingsProps {
   maxTimer: number | string
   maxAttempts: number | string
   wordLength: number | string
+  freeHintLimit: number | string
+  freeHintEnabled?: boolean
   chatEnabled?: boolean
   gameLogEnabled?: boolean
   onUpdate: (settings: any) => void
@@ -15,6 +17,8 @@ export default function WordleSettings({
   maxTimer,
   maxAttempts,
   wordLength,
+  freeHintLimit,
+  freeHintEnabled,
   chatEnabled,
   gameLogEnabled,
   onUpdate,
@@ -59,6 +63,23 @@ export default function WordleSettings({
         onChange={(val) => onUpdate({ wordLength: val })}
         helperText={`Value between ${GAME_CONFIG.WORDLE.LENGTH.MIN} and ${GAME_CONFIG.WORDLE.LENGTH.MAX}`}
       />
+
+      <ToggleInput
+        label="Enable Free Hint"
+        checked={freeHintEnabled !== false}
+        onChange={(checked) => onUpdate({ freeHintEnabled: checked })}
+      />
+
+      {freeHintEnabled && (
+        <NumberInput
+          label="Free Hints Limit"
+          value={freeHintLimit}
+          min={GAME_CONFIG.WORDLE.FREE_HINTS.MIN}
+          max={GAME_CONFIG.WORDLE.FREE_HINTS.MAX}
+          onChange={(val) => onUpdate({ freeHintLimit: val })}
+          helperText={`Value between ${GAME_CONFIG.WORDLE.FREE_HINTS.MIN} and ${GAME_CONFIG.WORDLE.FREE_HINTS.MAX}`}
+        />
+      )}
     </>
   )
 }

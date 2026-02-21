@@ -18,6 +18,12 @@ export class WordleGame extends BaseGame {
 
   activePlayerId: string | null = null
   winnerId: string | null | undefined = null
+  revealedWord: string | undefined = undefined
+  hintsUsed: number = 0
+  hintLetterIndexes: number[] = []
+  hintLetters: string[] = []
+  freeHintLimit: number = GAME_CONFIG.WORDLE.FREE_HINTS.DEFAULT
+  freeHintEnabled: boolean = true
   turnStartTime: number = 0
   timer: number = 0
   maxTimer: number = GAME_CONFIG.WORDLE.TIMER.DEFAULT
@@ -40,6 +46,10 @@ export class WordleGame extends BaseGame {
 
     this.context.gameState = GameState.PLAYING
     this.winnerId = null
+    this.revealedWord = undefined
+    this.hintsUsed = 0
+    this.hintLetterIndexes = []
+    this.hintLetters = []
     this.guesses = []
 
     // Reset all players to alive
@@ -94,6 +104,12 @@ export class WordleGame extends BaseGame {
           break
         case WordleClientMessageType.UPDATE_SETTINGS:
           this.updateSettings(sender.id, data)
+          break
+        case WordleClientMessageType.REVEAL_WORD:
+          this.revealWord(sender.id)
+          break
+        case WordleClientMessageType.USE_HINT:
+          this.useHint(sender.id)
           break
       }
     } catch (e) {
@@ -152,12 +168,75 @@ export class WordleGame extends BaseGame {
       if (s.maxTimer !== undefined) this.maxTimer = s.maxTimer
       if (s.maxAttempts !== undefined) this.maxAttempts = s.maxAttempts
       if (s.wordLength !== undefined) this.wordLength = s.wordLength
+      if (s.freeHintLimit !== undefined) this.freeHintLimit = s.freeHintLimit
+      if (s.freeHintEnabled !== undefined)
+        this.freeHintEnabled = s.freeHintEnabled
       if (s.chatEnabled !== undefined) this.chatEnabled = s.chatEnabled
       if (s.gameLogEnabled !== undefined) this.gameLogEnabled = s.gameLogEnabled
 
       this.logger.info("Settings updated", { adminId: playerId, ...s })
       this.context.broadcastState()
     }
+  }
+
+  public revealWord(playerId: string) {
+    // Only allow revealing when game is ended
+    if (this.context.gameState !== GameState.ENDED) return
+
+    this.revealedWord = this.targetWord
+    this.logger.info("Word revealed", { playerId, word: this.targetWord })
+    this.context.broadcastState()
+  }
+
+  public useHint(playerId: string) {
+    // Only allow hint when game is playing, limit not reached, and free hint is enabled
+    if (this.context.gameState !== GameState.PLAYING) return
+    if (this.hintsUsed >= this.freeHintLimit) return
+    if (!this.freeHintEnabled) return
+    if (!this.targetWord) return
+
+    // Pick a random letter position that hasn't been correctly guessed or hinted yet
+    const revealedPositions = new Set<number>(this.hintLetterIndexes)
+    this.guesses.forEach((guess) => {
+      guess.results.forEach((result, idx) => {
+        if (result === "correct") {
+          revealedPositions.add(idx)
+        }
+      })
+    })
+
+    // Get available positions (not yet guessed correctly or hinted)
+    const availablePositions = []
+    for (let i = 0; i < this.targetWord.length; i++) {
+      if (!revealedPositions.has(i)) {
+        availablePositions.push(i)
+      }
+    }
+
+    // If all letters are already revealed, don't provide hint
+    if (availablePositions.length === 0) return
+
+    // Pick a random position
+    const randomIndex =
+      availablePositions[Math.floor(Math.random() * availablePositions.length)]
+
+    this.hintsUsed++
+    this.hintLetterIndexes.push(randomIndex)
+    this.hintLetters.push(this.targetWord[randomIndex])
+
+    this.logger.info("Hint used", {
+      playerId,
+      hintNumber: this.hintsUsed,
+      hintLetterIndex: randomIndex,
+      letter: this.targetWord[randomIndex],
+    })
+
+    this.broadcast({
+      type: ServerMessageType.SYSTEM_MESSAGE,
+      message: `Hint ${this.hintsUsed}/${this.freeHintLimit}: Position ${randomIndex + 1} is "${this.targetWord[randomIndex]}"`,
+    })
+
+    this.context.broadcastState()
   }
 
   onTick(): void {
@@ -355,6 +434,12 @@ export class WordleGame extends BaseGame {
       guesses: this.guesses,
       activePlayerId: this.activePlayerId,
       winnerId: this.winnerId, // Send valid winner ID
+      revealedWord: this.revealedWord,
+      hintsUsed: this.hintsUsed,
+      hintLetterIndexes: this.hintLetterIndexes,
+      hintLetters: this.hintLetters,
+      freeHintLimit: this.freeHintLimit,
+      freeHintEnabled: this.freeHintEnabled,
       timer: this.timer,
       maxTimer: this.maxTimer,
       maxAttempts: this.maxAttempts,

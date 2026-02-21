@@ -91,6 +91,16 @@ export function GameSettingsForm({
             serverState.wordLength ??
             GAME_CONFIG.WORDLE.LENGTH.DEFAULT
           }
+          freeHintLimit={
+            pendingSettings.freeHintLimit ??
+            serverState.freeHintLimit ??
+            GAME_CONFIG.WORDLE.FREE_HINTS.DEFAULT
+          }
+          freeHintEnabled={
+            pendingSettings.freeHintEnabled ??
+            serverState.freeHintEnabled ??
+            true
+          }
           chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
           gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
           onUpdate={onUpdate}

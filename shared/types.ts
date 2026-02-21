@@ -66,6 +66,8 @@ export enum WordleClientMessageType {
   SUBMIT_WORD = "WORDLE_SUBMIT_WORD",
   UPDATE_TYPING = "WORDLE_UPDATE_TYPING",
   UPDATE_SETTINGS = "WORDLE_UPDATE_SETTINGS",
+  REVEAL_WORD = "WORDLE_REVEAL_WORD",
+  USE_HINT = "WORDLE_USE_HINT",
 }
 
 export enum BombPartyClientMessageType {
@@ -99,6 +101,8 @@ export type WordleClientMessage =
   | { type: WordleClientMessageType.STOP_GAME }
   | { type: WordleClientMessageType.SUBMIT_WORD; word: string }
   | { type: WordleClientMessageType.UPDATE_TYPING; text: string }
+  | { type: WordleClientMessageType.REVEAL_WORD }
+  | { type: WordleClientMessageType.USE_HINT }
   | (WordleSettings & { type: WordleClientMessageType.UPDATE_SETTINGS })
 
 export type BombPartyClientMessage =
@@ -152,6 +156,12 @@ export interface WordleServerState extends BaseServerState {
   maxTimer: number
   maxAttempts: number
   wordLength: number
+  revealedWord?: string
+  hintsUsed: number
+  hintLetterIndexes: number[]
+  hintLetters: string[]
+  freeHintLimit: number
+  freeHintEnabled: boolean
 }
 
 export interface WordChainServerState extends BaseServerState {

@@ -60,6 +60,12 @@ export default function WordleView({
     maxAttempts,
     wordLength,
     dictionaryLoaded,
+    revealedWord,
+    hintsUsed = 0,
+    hintLetterIndexes = [],
+    hintLetters = [],
+    freeHintLimit = 1,
+    freeHintEnabled,
   } = serverState
 
   // Handling typing updates from other players
@@ -171,6 +177,7 @@ export default function WordleView({
                 `Timer: ${maxTimer}s`,
                 `Max Attempts: ${maxAttempts}`,
                 `Word Length: ${wordLength}`,
+                `Hints: ${freeHintEnabled ? freeHintLimit : "Disabled"}`,
               ]}
             />
 
@@ -234,8 +241,42 @@ export default function WordleView({
             </div>
 
             {/* Game Grid */}
-            {/* Game Grid */}
             <div className="flex flex-col gap-2 mb-4 relative">
+              {/* Hint Row (Show all hints in one row at the top) */}
+              {(gameState === GameState.PLAYING ||
+                gameState === GameState.ENDED) &&
+                hintsUsed > 0 &&
+                hintLetterIndexes.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    {Array.from({ length: wordLength }).map((_, i) => {
+                      const hintIndex = hintLetterIndexes.indexOf(i)
+                      const isHintPosition = hintIndex !== -1
+                      const hintLetter = isHintPosition
+                        ? hintLetters[hintIndex]
+                        : ""
+                      return (
+                        <div
+                          key={i}
+                          className={clsx(
+                            "w-10 h-10 md:w-12 md:h-12 flex items-center justify-center font-bold text-xl border-2 uppercase transition-all animate-in zoom-in duration-300",
+                            isHintPosition
+                              ? "bg-info text-info-content border-info"
+                              : "border-transparent",
+                          )}
+                          style={
+                            isHintPosition ? { animationDelay: "100ms" } : {}
+                          }
+                        >
+                          {hintLetter}
+                        </div>
+                      )
+                    })}
+                    <div className="flex items-center ml-2 text-xs text-info font-bold">
+                      {hintsUsed} Hint{hintsUsed > 1 ? "s" : ""}
+                    </div>
+                  </div>
+                )}
+
               {/* Previous Guesses */}
               {visibleGuesses.map((g: Guess, i: number) => (
                 <div key={i} className="flex gap-2">
@@ -332,6 +373,24 @@ export default function WordleView({
               {tempError}
             </div>
 
+            {/* Hint Button (Only when playing, hint enabled, and hints remaining) */}
+            {gameState === GameState.PLAYING &&
+              freeHintEnabled &&
+              hintsUsed < freeHintLimit && (
+                <button
+                  onClick={() =>
+                    socket.send(
+                      JSON.stringify({
+                        type: WordleClientMessageType.USE_HINT,
+                      }),
+                    )
+                  }
+                  className="btn btn-info btn-sm mb-2"
+                >
+                  Use Hint ({freeHintLimit - hintsUsed} remaining)
+                </button>
+              )}
+
             {/* Keyboard (Disabled when ended) */}
             <div
               className={clsx(
@@ -424,6 +483,40 @@ export default function WordleView({
                 ) : (
                   <div className="text-xl">No winner this time!</div>
                 )}
+
+                {/* Reveal Word Button / Display */}
+                <div className="mt-6">
+                  {revealedWord ? (
+                    <div className="text-center">
+                      <p className="text-sm opacity-70 mb-2">The word was:</p>
+                      <div className="inline-flex gap-2">
+                        {revealedWord.split("").map((char, i) => (
+                          <div
+                            key={i}
+                            className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center font-bold text-2xl border-2 bg-success text-success-content border-success uppercase animate-in zoom-in duration-300"
+                            style={{ animationDelay: `${i * 50}ms` }}
+                          >
+                            {char}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        socket.send(
+                          JSON.stringify({
+                            type: WordleClientMessageType.REVEAL_WORD,
+                          }),
+                        )
+                      }
+                      className="btn btn-secondary"
+                    >
+                      Reveal Word
+                    </button>
+                  )}
+                </div>
+
                 {isAdmin && (
                   <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                     <button
