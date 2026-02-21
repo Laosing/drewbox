@@ -32,8 +32,32 @@ describe("RoomService", () => {
     chatService = new ChatService(room.id, context)
     moderationService = new ModerationService(room.id)
 
-    // Register a mock game to avoid factory errors
+    // Register mock games to avoid factory errors
     GameRegistry.register(GameMode.BOMB_PARTY, () => ({
+      onStart: vi.fn(),
+      onTick: vi.fn(),
+      onPlayerJoin: vi.fn(),
+      onPlayerLeave: vi.fn(),
+      onMessage: vi.fn(),
+      dispose: vi.fn(),
+      getState: () => ({}),
+      chatEnabled: true,
+      gameLogEnabled: true,
+    }))
+
+    GameRegistry.register(GameMode.WORDLE, () => ({
+      onStart: vi.fn(),
+      onTick: vi.fn(),
+      onPlayerJoin: vi.fn(),
+      onPlayerLeave: vi.fn(),
+      onMessage: vi.fn(),
+      dispose: vi.fn(),
+      getState: () => ({}),
+      chatEnabled: true,
+      gameLogEnabled: true,
+    }))
+
+    GameRegistry.register(GameMode.WORD_CHAIN, () => ({
       onStart: vi.fn(),
       onTick: vi.fn(),
       onPlayerJoin: vi.fn(),
@@ -181,5 +205,112 @@ describe("RoomService", () => {
     expect(players.has("target-id")).toBe(false)
     expect(targetConn.close).toHaveBeenCalledWith(4002, "Kicked by Admin")
     expect(moderationService.blockedIPs.has("target-id")).toBe(true)
+  })
+
+  it("should respect game mode from URL parameter on first connection", async () => {
+    // Create a new room service for Wordle mode
+    const wordleRoom = new MockRoom("wordle-room")
+    const wordlePlayers = new Map()
+    const wordleContext = {
+      broadcast: vi.fn(),
+      broadcastState: vi.fn(),
+    } as unknown as IRoomContext
+    const wordleChat = new ChatService(wordleRoom.id, wordleContext)
+    const wordleModeration = new ModerationService(wordleRoom.id)
+
+    const wordleRoomService = new RoomService(
+      wordleRoom as any,
+      wordleContext,
+      wordlePlayers,
+      GameMode.BOMB_PARTY, // Default, but should be overridden
+      wordleChat,
+      wordleModeration,
+    )
+
+    // Connect first player with Wordle mode in URL
+    const conn = new MockConnection("player-1")
+    const ctx = createMockConnectionContext(
+      "1.1.1.1",
+      "http://localhost/party/room?mode=WORDLE",
+    )
+
+    await wordleRoomService.handleConnect(conn as any, ctx)
+
+    // Verify game mode was set to Wordle
+    expect(wordleRoomService.gameMode).toBe(GameMode.WORDLE)
+    expect(wordlePlayers.has("player-1")).toBe(true)
+  })
+
+  it("should respect game mode from URL even when creating a new room after previous session", async () => {
+    // Simulate a room that previously had Bomb Party
+    await room.storage.put("gameMode", GameMode.BOMB_PARTY)
+
+    // Create a new room service (simulating room restart)
+    const newPlayers = new Map()
+    const newContext = {
+      broadcast: vi.fn(),
+      broadcastState: vi.fn(),
+    } as unknown as IRoomContext
+    const newChat = new ChatService(room.id, newContext)
+    const newModeration = new ModerationService(room.id)
+
+    const newRoomService = new RoomService(
+      room as any,
+      newContext,
+      newPlayers,
+      GameMode.BOMB_PARTY,
+      newChat,
+      newModeration,
+    )
+
+    // Connect first player with Word Chain mode in URL
+    const conn = new MockConnection("player-1")
+    const ctx = createMockConnectionContext(
+      "1.1.1.1",
+      "http://localhost/party/room?mode=WORD_CHAIN",
+    )
+
+    await newRoomService.handleConnect(conn as any, ctx)
+
+    // Verify game mode was set to Word Chain, NOT the stored Bomb Party
+    expect(newRoomService.gameMode).toBe(GameMode.WORD_CHAIN)
+    expect(newPlayers.has("player-1")).toBe(true)
+
+    // Verify storage was updated
+    expect(await room.storage.get("gameMode")).toBe(GameMode.WORD_CHAIN)
+  })
+
+  it("should default to Bomb Party if no mode parameter is provided", async () => {
+    // Create a fresh room service
+    const freshRoom = new MockRoom("fresh-room")
+    const freshPlayers = new Map()
+    const freshContext = {
+      broadcast: vi.fn(),
+      broadcastState: vi.fn(),
+    } as unknown as IRoomContext
+    const freshChat = new ChatService(freshRoom.id, freshContext)
+    const freshModeration = new ModerationService(freshRoom.id)
+
+    const freshRoomService = new RoomService(
+      freshRoom as any,
+      freshContext,
+      freshPlayers,
+      GameMode.BOMB_PARTY,
+      freshChat,
+      freshModeration,
+    )
+
+    // Connect first player without mode parameter
+    const conn = new MockConnection("player-1")
+    const ctx = createMockConnectionContext(
+      "1.1.1.1",
+      "http://localhost/party/room",
+    )
+
+    await freshRoomService.handleConnect(conn as any, ctx)
+
+    // Verify game mode defaults to Bomb Party
+    expect(freshRoomService.gameMode).toBe(GameMode.BOMB_PARTY)
+    expect(freshPlayers.has("player-1")).toBe(true)
   })
 })
