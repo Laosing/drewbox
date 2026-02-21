@@ -77,7 +77,8 @@ export default function GameCanvas({
   }, [urlPwd])
 
   const needsPassword = initialRoomInfo?.isPrivate
-  const initialMode = initialRoomInfo?.mode || urlMode
+  // Prioritize URL mode for new room creation, fall back to existing room mode
+  const initialMode = urlMode || initialRoomInfo?.mode
 
   if (isBlockedMultiTab) {
     return (
