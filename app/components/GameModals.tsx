@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { GameState } from "../../shared/types"
+import { GameMode, GameState } from "../../shared/types"
 import { useGameStore } from "../store/gameStore"
 import { Modal } from "./Modal"
 import { GameSettingsForm } from "./GameSettingsForm"
@@ -14,11 +14,16 @@ function SettingsModal({
   onClose: () => void
 }) {
   const updateSettings = useGameStore((s) => s.updateSettings)
+  const changeGameMode = useGameStore((s) => s.changeGameMode)
 
   const gameMode = useGameStore((s) => s.gameMode)
   const serverState = useGameStore((s) => s.serverState)
   const chatEnabled = useGameStore((s) => s.chatEnabled)
   const gameLogEnabled = useGameStore((s) => s.gameLogEnabled)
+  const players = useGameStore((s) => s.players)
+  const socket = useGameStore((s) => s.socket)
+
+  const isAdmin = players.find((p) => p.id === socket?.id)?.isAdmin ?? false
 
   const [pendingSettings, setPendingSettings] = useState<any>({})
 
@@ -47,6 +52,24 @@ function SettingsModal({
       isOpen={isOpen}
       onClose={onClose}
     >
+      <div className="mb-6">
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">Game Mode</legend>
+          <select
+            className="select select-bordered w-full"
+            value={gameMode}
+            disabled={!isAdmin}
+            onChange={(e) => {
+              changeGameMode(e.target.value as GameMode)
+              setPendingSettings({})
+            }}
+          >
+            <option value={GameMode.BOMB_PARTY}>Bombparty</option>
+            <option value={GameMode.WORDLE}>Wordle</option>
+            <option value={GameMode.WORD_CHAIN}>Word Chain</option>
+          </select>
+        </fieldset>
+      </div>
       {gameMode && (
         <GameSettingsForm
           gameMode={gameMode}

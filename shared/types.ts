@@ -58,6 +58,7 @@ export enum GlobalClientMessageType {
   CHAT_MESSAGE = "CHAT_MESSAGE",
   KICK_PLAYER = "KICK_PLAYER",
   UPDATE_SETTINGS = "UPDATE_SETTINGS", // Global settings (chat, log)
+  CHANGE_GAME_MODE = "CHANGE_GAME_MODE",
 }
 
 export enum WordleClientMessageType {
@@ -95,6 +96,7 @@ export type GlobalClientMessage =
       type: GlobalClientMessageType.UPDATE_SETTINGS
       // Removed global chat/log
     }
+  | { type: GlobalClientMessageType.CHANGE_GAME_MODE; mode: GameMode }
 
 export type WordleClientMessage =
   | { type: WordleClientMessageType.START_GAME; reuseWord?: boolean }

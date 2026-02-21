@@ -288,6 +288,22 @@ export class RoomService {
           }
           break
 
+        case GlobalClientMessageType.CHANGE_GAME_MODE: {
+          const isLobbyOrEnded =
+            this.gameState === GameState.LOBBY ||
+            this.gameState === GameState.ENDED
+          if (
+            senderPlayer?.isAdmin &&
+            isLobbyOrEnded &&
+            data.mode &&
+            Object.values(GameMode).includes(data.mode)
+          ) {
+            this.room.storage.put("gameMode", data.mode)
+            this.setGameMode(data.mode)
+          }
+          break
+        }
+
         default:
           // Delegate to Game
           this.activeGame?.onMessage(message, sender)

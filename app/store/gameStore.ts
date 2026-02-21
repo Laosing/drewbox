@@ -1,9 +1,9 @@
 import { create } from "zustand"
 import {
   GameState,
+  GameMode,
   GlobalClientMessageType,
   ServerMessageType,
-  type GameMode,
   type Player,
 } from "../../shared/types"
 import { SETTINGS_CONFIG } from "../../shared/config"
@@ -42,6 +42,7 @@ interface GameStateHelper {
   openModal: (modal: "none" | "name" | "settings") => void
 
   updateSettings: (pendingSettings: any) => void
+  changeGameMode: (mode: GameMode) => void
   addLog: (msg: string) => void
 }
 
@@ -175,5 +176,14 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
         }),
       )
     }
+  },
+
+  changeGameMode: (mode: GameMode) => {
+    get().socket?.send(
+      JSON.stringify({
+        type: GlobalClientMessageType.CHANGE_GAME_MODE,
+        mode,
+      }),
+    )
   },
 }))
