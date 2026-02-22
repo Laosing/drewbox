@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useMultiTabPrevention } from "../hooks/useMultiTabPrevention"
 import { useGameSession } from "../hooks/useGameSession"
+import { useGameSounds } from "../hooks/useGameSounds"
 import { Logo } from "./Logo"
 import StatusCard from "./StatusCard"
 import { ActiveGameView } from "./ActiveGameView"
@@ -24,6 +25,7 @@ function GameCanvasInner({
 }) {
   // Init connection
   useGameSession({ room, password, initialMode })
+  useGameSounds()
 
   return (
     <div className="container mx-auto p-4 flex flex-col gap-6 max-w-4xl">

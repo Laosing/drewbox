@@ -43,6 +43,9 @@ interface GameStateHelper {
 
   updateSettings: (pendingSettings: any) => void
   changeGameMode: (mode: GameMode) => void
+  pendingSounds: string[]
+  queueSound: (sound: string) => void
+  clearSounds: () => void
   addLog: (msg: string) => void
 }
 
@@ -59,6 +62,7 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
   clientId: "",
   socket: null,
   activeModal: "none",
+  pendingSounds: [],
 
   setSocket: (socket) => set({ socket }),
   setMyName: (name) => set({ myName: name }),
@@ -80,17 +84,23 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
     } else if (data.type === ServerMessageType.KICK) {
       window.location.href = "/"
     } else if (data.type === ServerMessageType.ERROR) {
-      if (!data.hide) get().addLog(`Error: ${data.message}`)
+      if (!data.hide) {
+        get().addLog(`Error: ${data.message}`)
+        get().queueSound("error")
+      }
     } else if (data.type === ServerMessageType.BONUS) {
       get().addLog(`Bonus: ${data.message}`)
+      get().queueSound("bonus")
     } else if (data.type === ServerMessageType.EXPLOSION) {
       const pName =
         state.players.find((p) => p.id === data.playerId)?.name || "Unknown"
       get().addLog(`BOOM! Player: ${pName} lost a life!`)
+      get().queueSound("explosion")
     } else if (data.type === ServerMessageType.SYSTEM_MESSAGE) {
       get().addLog(`${data.message}`)
     } else if (data.type === ServerMessageType.VALID_WORD) {
       get().addLog(`${data.message}`)
+      get().queueSound("valid")
     } else if (data.type === ServerMessageType.GAME_OVER) {
       if (data.winnerId) {
         const winner = state.players.find((p) => p.id === data.winnerId)
@@ -99,6 +109,7 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
         get().addLog(
           `Game Over! Winner: ${winnerName}${lastWord ? ` | Last word: ${lastWord}` : ""}`,
         )
+        get().queueSound("win")
       } else {
         get().addLog("Game Over!")
       }
@@ -186,4 +197,8 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
       }),
     )
   },
+
+  queueSound: (sound) =>
+    set((s) => ({ pendingSounds: [...s.pendingSounds, sound] })),
+  clearSounds: () => set({ pendingSounds: [] }),
 }))
