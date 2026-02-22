@@ -13,6 +13,8 @@ import { WordHighlight } from "../WordHighlight"
 import { PlayerCard } from "../PlayerCard"
 import clsx from "clsx"
 import { LobbyGameSettingsBadges } from "../LobbyGameSettingsBadges"
+import { generateAvatar } from "../../utils/avatar"
+import { CustomAvatar } from "../Logo"
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 
@@ -107,6 +109,15 @@ export default function BombPartyView({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!input) return
+    // Flush a typing event immediately before submitting so the server always
+    // registers at least 2 typing events (1 from normal throttled typing + this
+    // one), preventing false "suspicious activity" for fast first-word submissions.
+    socket.send(
+      JSON.stringify({
+        type: BombPartyClientMessageType.UPDATE_TYPING,
+        text: input,
+      }),
+    )
     socket.send(
       JSON.stringify({
         type: BombPartyClientMessageType.SUBMIT_WORD,
@@ -177,7 +188,7 @@ export default function BombPartyView({
                 {dictionaryLoaded ? "Start Game" : "Loading Dictionary..."}
               </button>
             ) : (
-              <div className="mt-4 opacity-70 animate-pulse">
+              <div className="mt-4 opacity-70">
                 Waiting for the admin to start...
               </div>
             )}
@@ -187,7 +198,7 @@ export default function BombPartyView({
         {gameState === GameState.COUNTDOWN && serverState.countdown != null && (
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-lg opacity-70 mb-4">Get ready!</p>
-            <div className="text-8xl font-black tabular-nums text-primary animate-bounce">
+            <div className="text-8xl font-black tabular-nums text-primary">
               {serverState.countdown}
             </div>
             {isAdmin && (
@@ -312,9 +323,16 @@ export default function BombPartyView({
             {winnerId ? (
               <div className="text-xl">
                 Winner:{" "}
-                <span className="font-bold">
-                  {players.find((p) => p.id === winnerId)?.name}
-                </span>
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <CustomAvatar
+                    name={
+                      players.find((p) => p.id === winnerId)?.name || "Unknown"
+                    }
+                  />
+                  <span className="font-bold">
+                    {players.find((p) => p.id === winnerId)?.name}
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="text-xl">No winner this time!</div>

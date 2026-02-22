@@ -141,3 +141,19 @@ export const LeftIcon = (props: React.SVGProps<SVGSVGElement>) => {
     </svg>
   )
 }
+
+export const VolumeIcon = (props: React.SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="32"
+      height="32"
+      fill="currentColor"
+      viewBox="0 0 256 256"
+      className="size-4"
+      {...props}
+    >
+      <path d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM32,96H72v64H32ZM144,207.64,88,164.09V91.91l56-43.55Zm54-106.07a40,40,0,0,1,0,52.86,8,8,0,0,1-11.95-10.64,24,24,0,0,0,0-31.58A8,8,0,1,1,198,101.57Zm24.31-26a80,80,0,0,1,0,104.86,8,8,0,0,1-11.95-10.64,64,64,0,0,0,0-83.58A8,8,0,1,1,222.31,75.55Z"></path>
+    </svg>
+  )
+}

@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import type { ReactNode } from "react"
 
-export type ModalType = string
+export type ModalType = "sound-settings" | "name" | "settings" // Extend with more as needed
 
 interface ModalData {
   id: ModalType

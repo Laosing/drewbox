@@ -16,7 +16,6 @@ export function useGameSession({
 }) {
   const setSocket = useGameStore((state) => state.setSocket)
   const handleMessage = useGameStore((state) => state.handleMessage)
-  const setMyName = useGameStore((state) => state.setMyName)
   const setClientId = useGameStore((state) => state.setClientId)
   const clientId = useGameStore((state) => state.clientId)
 
@@ -30,8 +29,6 @@ export function useGameSession({
     }
     setClientId(id)
 
-    const name = localStorage.getItem(STORAGE_KEYS.USERNAME) || ""
-    if (name) setMyName(name)
   }, [])
 
   // Keep initialName stable to prevent socket reconnect

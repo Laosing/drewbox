@@ -26,10 +26,13 @@ export function useSound(sounds: Record<string, string>) {
   }, [sounds])
 
   const play = useCallback(
-    (key: string) => {
+    (key: string, volume: number = 1) => {
       const audio = audioMap.current.get(key)
       if (!audio) return
 
+      if (document.hidden) return
+
+      audio.volume = Math.max(0, Math.min(1, volume))
       audio.currentTime = 0
       audio.play().catch(() => {
         // Browser autoplay policy blocks audio before user interaction — safe to ignore

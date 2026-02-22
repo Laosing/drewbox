@@ -231,7 +231,7 @@ export default function WordChainView({
                   onChange={(e) => setInput(e.target.value)}
                 />
                 {tempError && (
-                  <div className="absolute -bottom-8 left-0 right-0 text-center text-error font-bold animate-bounce">
+                  <div className="absolute -bottom-8 left-0 right-0 text-center text-error font-bold">
                     {tempError}
                   </div>
                 )}

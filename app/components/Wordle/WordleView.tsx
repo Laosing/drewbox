@@ -196,7 +196,7 @@ export default function WordleView({
                 {dictionaryLoaded ? "Start Game" : "Loading Dictionary..."}
               </button>
             ) : (
-              <div className="mt-4 opacity-70 animate-pulse">
+              <div className="mt-4 opacity-70">
                 Waiting for host to start...
               </div>
             )}

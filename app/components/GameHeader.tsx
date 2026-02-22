@@ -1,8 +1,9 @@
-import { CopyIcon, LeftIcon, LockIcon, SettingsIcon } from "./Icons"
+import { CopyIcon, LeftIcon, LockIcon, SettingsIcon, VolumeIcon } from "./Icons"
 import { Logo } from "./Logo"
 import { GameState } from "../../shared/types"
 import React from "react"
 import { ThemeController } from "./ThemeController"
+import { useModalStore } from "../services/ModalFactory"
 
 interface GameHeaderProps {
   room: string
@@ -48,6 +49,14 @@ export function GameHeader({
                 Settings
               </button>
             )}
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => useModalStore.getState().openModal("sound-settings")}
+            title="Sound Settings"
+          >
+            <VolumeIcon />
+            Sound
+          </button>
           {additionalRightControls}
           <ThemeController />
         </div>

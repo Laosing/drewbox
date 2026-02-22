@@ -23,13 +23,11 @@ interface GameStateHelper {
   gameLogEnabled: boolean
   chatMessages: ChatMessage[]
   chatEnabled: boolean
-  myName: string
   clientId: string
   socket: PartySocket | null
 
   // Actions
   setSocket: (socket: PartySocket) => void
-  setMyName: (name: string) => void
   setClientId: (id: string) => void
   handleMessage: (data: any) => void
 
@@ -58,14 +56,12 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
   gameLogEnabled: true,
   chatMessages: [],
   chatEnabled: true,
-  myName: "",
   clientId: "",
   socket: null,
   activeModal: "none",
   pendingSounds: [],
 
   setSocket: (socket) => set({ socket }),
-  setMyName: (name) => set({ myName: name }),
   setClientId: (id) => set({ clientId: id }),
   openModal: (modal) => set({ activeModal: modal }),
 
@@ -86,8 +82,8 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
     } else if (data.type === ServerMessageType.ERROR) {
       if (!data.hide) {
         get().addLog(`Error: ${data.message}`)
-        get().queueSound("error")
       }
+      get().queueSound("error")
     } else if (data.type === ServerMessageType.BONUS) {
       get().addLog(`Bonus: ${data.message}`)
       get().queueSound("bonus")
@@ -141,7 +137,6 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
     })),
 
   updateName: (name: string) => {
-    set({ myName: name })
     localStorage.setItem(STORAGE_KEYS.USERNAME, name)
     get().socket?.send(
       JSON.stringify({
