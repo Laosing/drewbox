@@ -110,10 +110,11 @@ export class DictionaryService implements IDictionaryRepository {
       attempts++
     }
 
-    const found = SHARED_WORDS.find(
+    const candidates = SHARED_WORDS.filter(
       (w) => w.length === length && /^[A-Z]+$/.test(w),
     )
-    if (found) return found
+    if (candidates.length > 0)
+      return candidates[Math.floor(Math.random() * candidates.length)]
 
     throw new Error("Failed to find valid word")
   }
