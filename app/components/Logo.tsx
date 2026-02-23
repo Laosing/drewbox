@@ -54,8 +54,9 @@ export const CustomAvatar = ({
   name,
   ...props
 }: {
-  name: string
+  name?: string
 } & React.ImgHTMLAttributes<HTMLImageElement>) => {
+  if (!name) return null
   return (
     <img
       src={`data:image/svg+xml;base64,${btoa(generateAvatar(name))}`}

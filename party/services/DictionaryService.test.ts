@@ -74,13 +74,9 @@ describe("DictionaryService", () => {
   it("should generate random syllables", async () => {
     const dict = new DictionaryService()
 
-    // Generate enough words sharing a common syllable to meet the threshold (50)
-    const baseWords = Array.from({ length: 60 }, (_, i) => `TEST${i.toString().padStart(3, "0")}`)
-    const mockWords = baseWords.join("\n")
-
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      text: async () => mockWords,
+      text: async () => "TESTING\nAPPLE\nBANANA",
       body: null,
     } as Response)
 
@@ -88,6 +84,7 @@ describe("DictionaryService", () => {
 
     const syl = dict.getRandomSyllable()
     expect(syl.length).toBeGreaterThanOrEqual(2)
+    expect(syl.length).toBeLessThanOrEqual(3)
   })
 
   it("should generate random word of specific length", async () => {

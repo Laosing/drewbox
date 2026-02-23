@@ -154,6 +154,7 @@ export interface WordleServerState extends BaseServerState {
   guesses: Guess[]
   activePlayerId: string | null
   winnerId: string | null
+  countdown: number | null
   timer: number
   maxTimer: number
   maxAttempts: number
@@ -169,6 +170,7 @@ export interface WordleServerState extends BaseServerState {
 export interface WordChainServerState extends BaseServerState {
   currentWord: string
   activePlayerId: string | null
+  countdown: number | null
   timer: number
   maxTimer: number
   startingLives: number

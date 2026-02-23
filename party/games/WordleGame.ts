@@ -29,6 +29,8 @@ export class WordleGame extends BaseGame {
   maxTimer: number = GAME_CONFIG.WORDLE.TIMER.DEFAULT
   maxAttempts: number = GAME_CONFIG.WORDLE.ATTEMPTS.DEFAULT
   wordLength: number = GAME_CONFIG.WORDLE.LENGTH.DEFAULT
+  countdown: number | null = null
+  private pendingReuseWord: boolean = false
 
   constructor(context: any) {
     super(context)
@@ -44,7 +46,16 @@ export class WordleGame extends BaseGame {
       return
     }
 
+    this.pendingReuseWord = reuseWord
+    this.context.gameState = GameState.COUNTDOWN
+    this.countdown = 5
+    this.gameTimer.start()
+    this.context.broadcastState()
+  }
+
+  private startGame(): void {
     this.context.gameState = GameState.PLAYING
+    this.countdown = null
     this.winnerId = null
     this.revealedWord = undefined
     this.hintsUsed = 0
@@ -58,7 +69,7 @@ export class WordleGame extends BaseGame {
     }
 
     // Pick target word
-    if (!reuseWord || !this.targetWord) {
+    if (!this.pendingReuseWord || !this.targetWord) {
       try {
         this.targetWord = this.context.dictionary.getRandomWord(this.wordLength)
       } catch (e) {
@@ -71,7 +82,6 @@ export class WordleGame extends BaseGame {
       }
     }
 
-    this.gameTimer.start()
     this.nextTurn(true)
 
     this.logger.info("Wordle game started", {
@@ -120,18 +130,25 @@ export class WordleGame extends BaseGame {
   // Public Action Methods
   public requestStartGame(playerId: string, reuseWord: boolean = false) {
     const player = this.players.get(playerId)
+    if (!player?.isAdmin) return
+
     if (
-      player?.isAdmin &&
-      (this.context.gameState === GameState.LOBBY ||
-        this.context.gameState === GameState.ENDED)
+      this.context.gameState === GameState.LOBBY ||
+      this.context.gameState === GameState.ENDED
     ) {
       this.onStart(reuseWord)
+    } else if (this.context.gameState === GameState.COUNTDOWN) {
+      this.startGame()
     }
   }
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
+    if (
+      player?.isAdmin &&
+      (this.context.gameState === GameState.PLAYING ||
+        this.context.gameState === GameState.COUNTDOWN)
+    ) {
       this.endGame()
     }
   }
@@ -240,6 +257,16 @@ export class WordleGame extends BaseGame {
   }
 
   onTick(): void {
+    if (this.context.gameState === GameState.COUNTDOWN) {
+      this.countdown! -= 1
+      if (this.countdown! <= 0) {
+        this.startGame()
+      } else {
+        this.context.broadcastState()
+      }
+      return
+    }
+
     if (this.context.gameState !== GameState.PLAYING) return
 
     this.timer -= 1
@@ -434,6 +461,7 @@ export class WordleGame extends BaseGame {
       guesses: this.guesses,
       activePlayerId: this.activePlayerId,
       winnerId: this.winnerId, // Send valid winner ID
+      countdown: this.countdown,
       revealedWord: this.revealedWord,
       hintsUsed: this.hintsUsed,
       hintLetterIndexes: this.hintLetterIndexes,

@@ -320,22 +320,18 @@ export default function BombPartyView({
         {gameState === GameState.ENDED && (
           <div className="py-8">
             <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
-            {winnerId ? (
+            {winnerId && (
               <div className="text-xl">
                 Winner:{" "}
                 <div className="flex items-center justify-center gap-4 mt-4">
                   <CustomAvatar
-                    name={
-                      players.find((p) => p.id === winnerId)?.name || "Unknown"
-                    }
+                    name={players.find((p) => p.id === winnerId)?.name}
                   />
                   <span className="font-bold">
                     {players.find((p) => p.id === winnerId)?.name}
                   </span>
                 </div>
               </div>
-            ) : (
-              <div className="text-xl">No winner this time!</div>
             )}
 
             {isAdmin && (

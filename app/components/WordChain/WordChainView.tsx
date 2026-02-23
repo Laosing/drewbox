@@ -14,6 +14,7 @@ import PartySocket from "partysocket"
 import { PlayerCard } from "../PlayerCard"
 import { WordHighlight } from "../WordHighlight"
 import { LobbyGameSettingsBadges } from "../LobbyGameSettingsBadges"
+import { CustomAvatar } from "../Logo"
 
 interface WordChainViewProps {
   socket: PartySocket
@@ -173,6 +174,29 @@ export default function WordChainView({
             </div>
           )}
 
+          {gameState === GameState.COUNTDOWN && serverState.countdown != null && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <p className="text-lg opacity-70 mb-4">Get ready!</p>
+              <div className="text-8xl font-black tabular-nums text-primary">
+                {serverState.countdown}
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() =>
+                    socket.send(
+                      JSON.stringify({
+                        type: WordChainClientMessageType.START_GAME,
+                      }),
+                    )
+                  }
+                  className="btn btn-sm btn-warning mt-6 opacity-70"
+                >
+                  Skip
+                </button>
+              )}
+            </div>
+          )}
+
           {gameState === GameState.PLAYING && (
             <div className="flex flex-col items-center gap-6 w-full">
               <div className="text-3xl md:text-5xl font-black mb-4">
@@ -256,14 +280,22 @@ export default function WordChainView({
           {gameState === GameState.ENDED && (
             <div>
               <h2 className="text-3xl font-black mb-4">Game Over</h2>
-              {serverState.winnerId ? (
+              {serverState.winnerId && (
                 <p className="text-xl">
                   Winner:{" "}
-                  {players.find((p) => p.id === serverState.winnerId)?.name}
+                  <div className="flex items-center gap-2 justify-center mt-2">
+                    <CustomAvatar
+                      name={
+                        players.find((p) => p.id === serverState.winnerId)?.name
+                      }
+                    />
+                    <span className="font-bold">
+                      {players.find((p) => p.id === serverState.winnerId)?.name}
+                    </span>
+                  </div>
                 </p>
-              ) : (
-                <p>No Winner!</p>
               )}
+
               {isAdmin && (
                 <button
                   className="btn btn-primary mt-4"

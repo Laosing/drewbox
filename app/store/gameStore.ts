@@ -76,6 +76,11 @@ export const useGameStore = create<GameStateHelper>((set, get) => ({
         chatEnabled: data.chatEnabled ?? prev.chatEnabled,
         gameLogEnabled: data.gameLogEnabled ?? prev.gameLogEnabled,
         serverState: { ...prev.serverState, ...data },
+        logs:
+          data.gameState === GameState.COUNTDOWN &&
+          prev.gameState !== GameState.COUNTDOWN
+            ? []
+            : prev.logs,
       }))
     } else if (data.type === ServerMessageType.KICK) {
       window.location.href = "/"

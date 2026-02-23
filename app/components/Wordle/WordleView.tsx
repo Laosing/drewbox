@@ -14,6 +14,7 @@ import { GameHeader } from "../GameHeader"
 import clsx from "clsx"
 import { PlayerCard } from "../PlayerCard"
 import { LobbyGameSettingsBadges } from "../LobbyGameSettingsBadges"
+import { CustomAvatar } from "../Logo"
 
 interface WordleViewProps {
   socket: PartySocket
@@ -199,6 +200,29 @@ export default function WordleView({
               <div className="mt-4 opacity-70">
                 Waiting for host to start...
               </div>
+            )}
+          </div>
+        )}
+
+        {gameState === GameState.COUNTDOWN && serverState.countdown != null && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-lg opacity-70 mb-4">Get ready!</p>
+            <div className="text-8xl font-black tabular-nums text-primary">
+              {serverState.countdown}
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  socket.send(
+                    JSON.stringify({
+                      type: WordleClientMessageType.START_GAME,
+                    }),
+                  )
+                }
+                className="btn btn-sm btn-warning mt-6 opacity-70"
+              >
+                Skip
+              </button>
             )}
           </div>
         )}
@@ -473,15 +497,24 @@ export default function WordleView({
                 <h2 className="text-4xl font-black mb-4 text-primary">
                   GAME OVER
                 </h2>
-                {serverState.winnerId ? (
+                {serverState.winnerId && (
                   <div className="text-xl">
                     Winner:{" "}
-                    <span className="font-bold">
-                      {players.find((p) => p.id === serverState.winnerId)?.name}
-                    </span>
+                    <div className="flex items-center gap-2 justify-center mt-2">
+                      <CustomAvatar
+                        name={
+                          players.find((p) => p.id === serverState.winnerId)
+                            ?.name
+                        }
+                      />
+                      <span className="font-bold">
+                        {
+                          players.find((p) => p.id === serverState.winnerId)
+                            ?.name
+                        }
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-xl">No winner this time!</div>
                 )}
 
                 {/* Reveal Word Button / Display */}

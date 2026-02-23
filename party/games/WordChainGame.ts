@@ -21,6 +21,7 @@ export class WordChainGame extends BaseGame {
   hardModeStartRound: number = GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.DEFAULT
   round: number = 1
   minLength: number = 3
+  countdown: number | null = null
 
   constructor(context: any) {
     super(context)
@@ -39,7 +40,15 @@ export class WordChainGame extends BaseGame {
       return
     }
 
+    this.context.gameState = GameState.COUNTDOWN
+    this.countdown = 5
+    this.gameTimer.start()
+    this.context.broadcastState()
+  }
+
+  private startGame(): void {
     this.context.gameState = GameState.PLAYING
+    this.countdown = null
     this.context.initialAliveCount = this.players.size
     this.usedWords = new Set()
     this.round = 1
@@ -66,7 +75,6 @@ export class WordChainGame extends BaseGame {
       initialPlayers: this.players.size,
     })
 
-    this.gameTimer.start()
     this.nextTurn(true)
 
     this.broadcast({
@@ -104,18 +112,25 @@ export class WordChainGame extends BaseGame {
 
   public requestStartGame(playerId: string) {
     const player = this.players.get(playerId)
+    if (!player?.isAdmin) return
+
     if (
-      player?.isAdmin &&
-      (this.context.gameState === GameState.LOBBY ||
-        this.context.gameState === GameState.ENDED)
+      this.context.gameState === GameState.LOBBY ||
+      this.context.gameState === GameState.ENDED
     ) {
       this.onStart()
+    } else if (this.context.gameState === GameState.COUNTDOWN) {
+      this.startGame()
     }
   }
 
   public requestStopGame(playerId: string) {
     const player = this.players.get(playerId)
-    if (player?.isAdmin && this.context.gameState === GameState.PLAYING) {
+    if (
+      player?.isAdmin &&
+      (this.context.gameState === GameState.PLAYING ||
+        this.context.gameState === GameState.COUNTDOWN)
+    ) {
       this.endGame()
     }
   }
@@ -166,6 +181,16 @@ export class WordChainGame extends BaseGame {
   }
 
   onTick(): void {
+    if (this.context.gameState === GameState.COUNTDOWN) {
+      this.countdown! -= 1
+      if (this.countdown! <= 0) {
+        this.startGame()
+      } else {
+        this.context.broadcastState()
+      }
+      return
+    }
+
     if (this.context.gameState !== GameState.PLAYING) return
 
     this.timer -= 1
@@ -411,6 +436,7 @@ export class WordChainGame extends BaseGame {
     return {
       currentWord: this.currentWord,
       activePlayerId: this.activePlayerId,
+      countdown: this.countdown,
       timer: this.timer,
       maxTimer: this.maxTimer,
       startingLives: this.startingLives,
