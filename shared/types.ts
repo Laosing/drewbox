@@ -269,4 +269,5 @@ export interface BlackjackServerState extends BaseServerState {
   dealerHitsSoft17: boolean
   winningScore: number
   winnerIds: string[]
+  deckRemaining: number
 }

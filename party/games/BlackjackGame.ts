@@ -36,6 +36,7 @@ export class BlackjackGame extends BaseGame {
 
   constructor(context: any) {
     super(context)
+    this.deck = this.createShuffledDeck(this.deckCount)
   }
 
   onStart(): void {
@@ -60,7 +61,6 @@ export class BlackjackGame extends BaseGame {
     this.context.gameState = GameState.PLAYING
     this.countdown = null
     this.roundStatus = "dealing"
-    this.deck = this.createShuffledDeck(this.deckCount)
 
     // Initialize players
     for (const player of this.players.values()) {
@@ -121,7 +121,6 @@ export class BlackjackGame extends BaseGame {
         currentState.activeHandIndex + 1 < currentState.hands.length
       ) {
         currentState.activeHandIndex++
-        this.timer = this.maxTimer
         return
       }
     }
@@ -389,7 +388,6 @@ export class BlackjackGame extends BaseGame {
     const hand = state.hands[state.activeHandIndex]
     hand.cards.push(this.drawCard())
     hand.score = this.calculateScore(hand.cards)
-    this.timer = this.maxTimer
 
     if (hand.score > 21) {
       hand.isBusted = true
@@ -428,7 +426,6 @@ export class BlackjackGame extends BaseGame {
     hand.cards.push(this.drawCard())
     hand.score = this.calculateScore(hand.cards)
     hand.isStood = true
-    this.timer = this.maxTimer
 
     if (hand.score > 21) {
       hand.isBusted = true
@@ -480,7 +477,6 @@ export class BlackjackGame extends BaseGame {
       this.moveToNextActivePlayer()
     }
 
-    this.timer = this.maxTimer
     this.context.broadcastState()
   }
 
@@ -604,6 +600,7 @@ export class BlackjackGame extends BaseGame {
       this.roundStatus = "betting"
       this.playersState.clear()
       this.dealerHand = this.createEmptyHand()
+      this.deck = this.createShuffledDeck(this.deckCount)
       this.broadcast({
         type: ServerMessageType.SYSTEM_MESSAGE,
         message: "Game reset to lobby!",
@@ -619,7 +616,11 @@ export class BlackjackGame extends BaseGame {
     const result = BlackjackSettingsSchema.safeParse(settings)
     if (result.success) {
       const s = result.data
-      if (s.deckCount !== undefined) this.deckCount = s.deckCount
+      if (s.deckCount !== undefined) {
+        this.deckCount = s.deckCount
+        // Re-shuffle the deck immediately so the lobby reflects the new deck size
+        this.deck = this.createShuffledDeck(this.deckCount)
+      }
       if (s.dealerHitsSoft17 !== undefined)
         this.dealerHitsSoft17 = s.dealerHitsSoft17
       if (s.maxTimer !== undefined) this.maxTimer = s.maxTimer
@@ -752,6 +753,7 @@ export class BlackjackGame extends BaseGame {
       gameLogEnabled: this.gameLogEnabled,
       winningScore: this.winningScore,
       winnerIds: this.winnerIds,
+      deckRemaining: this.deck.length,
     }
   }
 

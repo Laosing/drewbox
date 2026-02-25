@@ -208,7 +208,10 @@ export const BlackjackView: React.FC<BlackjackViewProps> = ({
           {/* Dealer Area */}
           {(gameState === GameState.PLAYING ||
             gameState === GameState.ENDED) && (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center justify-center relative">
+              <div className="text-[10px] font-bold opacity-50 uppercase tracking-widest text-center">
+                Cards Remaining: {state.deckRemaining}
+              </div>
               <HandComponent
                 hand={state.dealerHand}
                 label={"Dealer"}
