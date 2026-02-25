@@ -5,6 +5,7 @@ import {
   BombPartyClientMessageType,
   WordleClientMessageType,
   WordChainClientMessageType,
+  BlackjackClientMessageType,
 } from "./types"
 
 // Game Configuration Constants
@@ -26,6 +27,13 @@ export const GAME_CONFIG = {
     TIMER: { MIN: 5, MAX: 60, DEFAULT: 10 },
     LIVES: { MIN: 1, MAX: 5, DEFAULT: 2 },
     HARD_MODE_START: { MIN: 2, MAX: 20, DEFAULT: 5 },
+  },
+  BLACKJACK: {
+    DECKS: { MIN: 1, MAX: 8, DEFAULT: 4 },
+    TIMER: { MIN: 5, MAX: 60, DEFAULT: 30 },
+    INITIAL_BANKROLL: { DEFAULT: 100 },
+    MIN_BET: { DEFAULT: 25 },
+    WINNING_SCORE: { MIN: 200, MAX: 1000, DEFAULT: 500 },
   },
 }
 
@@ -108,9 +116,31 @@ export const WordChainSettingsSchema = z.object({
   gameLogEnabled: z.boolean().optional(),
 })
 
+export const BlackjackSettingsSchema = z.object({
+  deckCount: z
+    .number()
+    .min(GAME_CONFIG.BLACKJACK.DECKS.MIN)
+    .max(GAME_CONFIG.BLACKJACK.DECKS.MAX)
+    .optional(),
+  maxTimer: z
+    .number()
+    .min(GAME_CONFIG.BLACKJACK.TIMER.MIN)
+    .max(GAME_CONFIG.BLACKJACK.TIMER.MAX)
+    .optional(),
+  winningScore: z
+    .number()
+    .min(GAME_CONFIG.BLACKJACK.WINNING_SCORE.MIN)
+    .max(GAME_CONFIG.BLACKJACK.WINNING_SCORE.MAX)
+    .optional(),
+  dealerHitsSoft17: z.boolean().optional(),
+  chatEnabled: z.boolean().optional(),
+  gameLogEnabled: z.boolean().optional(),
+})
+
 export type BombPartySettings = z.infer<typeof BombPartySettingsSchema>
 export type WordleSettings = z.infer<typeof WordleSettingsSchema>
 export type WordChainSettings = z.infer<typeof WordChainSettingsSchema>
+export type BlackjackSettings = z.infer<typeof BlackjackSettingsSchema>
 
 // Settings registry for the game store
 export const SETTINGS_CONFIG: Record<
@@ -128,5 +158,9 @@ export const SETTINGS_CONFIG: Record<
   [GameMode.WORD_CHAIN]: {
     schema: WordChainSettingsSchema,
     messageType: WordChainClientMessageType.UPDATE_SETTINGS,
+  },
+  [GameMode.BLACKJACK]: {
+    schema: BlackjackSettingsSchema,
+    messageType: BlackjackClientMessageType.UPDATE_SETTINGS,
   },
 }

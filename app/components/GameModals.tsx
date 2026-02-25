@@ -68,6 +68,7 @@ function SettingsModal({
             <option value={GameMode.BOMB_PARTY}>Bombparty</option>
             <option value={GameMode.WORDLE}>Wordle</option>
             <option value={GameMode.WORD_CHAIN}>Word Chain</option>
+            <option value={GameMode.BLACKJACK}>Blackjack</option>
           </select>
         </fieldset>
       </div>

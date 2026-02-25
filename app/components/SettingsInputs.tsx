@@ -6,6 +6,7 @@ interface NumberInputProps {
   onChange: (value: number | string) => void
   min?: number
   max?: number
+  step?: number
   helperText?: React.ReactNode
   required?: boolean
 }
@@ -16,6 +17,7 @@ export function NumberInput({
   onChange,
   min,
   max,
+  step,
   helperText,
 }: NumberInputProps) {
   const id = useId()
@@ -29,6 +31,7 @@ export function NumberInput({
         type="number"
         min={min}
         max={max}
+        step={step}
         value={value}
         onChange={(e) => {
           const val = e.target.value

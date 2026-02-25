@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "cleanup": "lsof -t -i:1999 -i:5173 -i:5174 | xargs -r kill -9 || true",
-    "dev": "concurrently \"pnpm start:client\" \"pnpm start:server\"",
+    "dev": "pnpm cleanup && concurrently \"pnpm start:client\" \"pnpm start:server\"",
     "start:client": "vite",
     "start:server": "partykit dev --live",
     "compress:dict": "gzip -c resources/dictionary.txt > public/dictionary.txt.gz",
@@ -20,6 +20,7 @@
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.162.4",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.34.3",
     "partysocket": "^1.1.15",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

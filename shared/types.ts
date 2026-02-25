@@ -2,6 +2,7 @@ import type {
   BombPartySettings,
   WordleSettings,
   WordChainSettings,
+  BlackjackSettings,
 } from "./config"
 
 export enum ServerMessageType {
@@ -44,6 +45,7 @@ export enum GameMode {
   BOMB_PARTY = "BOMB_PARTY",
   WORDLE = "WORDLE",
   WORD_CHAIN = "WORD_CHAIN",
+  BLACKJACK = "BLACKJACK",
 }
 
 export enum GameState {
@@ -88,6 +90,18 @@ export enum WordChainClientMessageType {
   UPDATE_SETTINGS = "WC_UPDATE_SETTINGS",
 }
 
+export enum BlackjackClientMessageType {
+  START_GAME = "BJ_START_GAME",
+  STOP_GAME = "BJ_STOP_GAME",
+  RESET_GAME = "BJ_RESET_GAME",
+  HIT = "BJ_HIT",
+  STAND = "BJ_STAND",
+  DOUBLE = "BJ_DOUBLE",
+  SPLIT = "BJ_SPLIT",
+  PLACE_BET = "BJ_PLACE_BET",
+  UPDATE_SETTINGS = "BJ_UPDATE_SETTINGS",
+}
+
 export type GlobalClientMessage =
   | { type: GlobalClientMessageType.SET_NAME; name: string }
   | { type: GlobalClientMessageType.CHAT_MESSAGE; text: string }
@@ -122,11 +136,23 @@ export type WordChainClientMessage =
   | { type: WordChainClientMessageType.UPDATE_TYPING; text: string }
   | (WordChainSettings & { type: WordChainClientMessageType.UPDATE_SETTINGS })
 
+export type BlackjackClientMessage =
+  | { type: BlackjackClientMessageType.START_GAME }
+  | { type: BlackjackClientMessageType.STOP_GAME }
+  | { type: BlackjackClientMessageType.RESET_GAME }
+  | { type: BlackjackClientMessageType.HIT }
+  | { type: BlackjackClientMessageType.STAND }
+  | { type: BlackjackClientMessageType.DOUBLE }
+  | { type: BlackjackClientMessageType.SPLIT }
+  | { type: BlackjackClientMessageType.PLACE_BET; amount: number }
+  | (BlackjackSettings & { type: BlackjackClientMessageType.UPDATE_SETTINGS })
+
 export type ClientMessage =
   | GlobalClientMessage
   | WordleClientMessage
   | BombPartyClientMessage
   | WordChainClientMessage
+  | BlackjackClientMessage
 
 export interface BaseServerState {
   dictionaryLoaded: boolean
@@ -179,4 +205,68 @@ export interface WordChainServerState extends BaseServerState {
   round: number
   hardModeStartRound: number
   minLength: number
+}
+
+export type Suit = "hearts" | "diamonds" | "clubs" | "spades"
+export type Rank =
+  | "A"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "10"
+  | "J"
+  | "Q"
+  | "K"
+
+export interface Card {
+  suit: Suit
+  rank: Rank
+}
+
+export interface Hand {
+  cards: Card[]
+  score: number
+  isBusted: boolean
+  isBlackjack: boolean
+  isStood: boolean
+  bet: number
+  status?:
+    | "playing"
+    | "stood"
+    | "busted"
+    | "blackjack"
+    | "won"
+    | "lost"
+    | "push"
+}
+
+export interface BlackjackPlayerState {
+  hands: Hand[]
+  activeHandIndex: number
+  bankroll: number
+}
+
+export interface BlackjackServerState extends BaseServerState {
+  playersState: Record<string, BlackjackPlayerState>
+  dealerHand: Hand
+  activePlayerId: string | null
+  roundStatus:
+    | "betting"
+    | "dealing"
+    | "players_turn"
+    | "dealer_turn"
+    | "round_results"
+  countdown: number | null
+  deckCount: number
+  maxTimer: number
+  timer: number
+  bettingTimer: number | null
+  dealerHitsSoft17: boolean
+  winningScore: number
+  winnerIds: string[]
 }

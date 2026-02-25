@@ -13,10 +13,12 @@ import { ModerationService } from "./services/ModerationService"
 import { BombPartyGame } from "./games/BombPartyGame"
 import { WordleGame } from "./games/WordleGame"
 import { WordChainGame } from "./games/WordChainGame"
+import { BlackjackGame } from "./games/BlackjackGame"
 
 GameRegistry.register(GameMode.BOMB_PARTY, (ctx) => new BombPartyGame(ctx))
 GameRegistry.register(GameMode.WORDLE, (ctx) => new WordleGame(ctx))
 GameRegistry.register(GameMode.WORD_CHAIN, (ctx) => new WordChainGame(ctx))
+GameRegistry.register(GameMode.BLACKJACK, (ctx) => new BlackjackGame(ctx))
 
 export default class Server implements Party.Server, IRoomContext {
   options: Party.ServerOptions = {

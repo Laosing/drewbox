@@ -7,6 +7,12 @@ const BombPartyView = lazy(() => import("./BombParty/BombPartyView"))
 const WordleView = lazy(() => import("./Wordle/WordleView"))
 const WordChainView = lazy(() => import("./WordChain/WordChainView"))
 
+const BlackjackView = lazy(() =>
+  import("./Blackjack/BlackjackView").then((m) => ({
+    default: m.BlackjackView,
+  })),
+)
+
 interface ActiveGameViewProps {
   room: string
   password?: string | null
@@ -80,6 +86,20 @@ export function ActiveGameView({
           onOpenSettings={onOpenSettings}
           room={room}
           password={password}
+        />
+      )}
+      {gameMode === GameMode.BLACKJACK && (
+        <BlackjackView
+          state={serverState as any}
+          players={players}
+          selfId={socket.id}
+          gameState={gameState}
+          isAdmin={isAdmin}
+          room={room}
+          password={password}
+          onOpenSettings={onOpenSettings}
+          onKick={kickPlayer}
+          onEditName={onEditName}
         />
       )}
     </Suspense>

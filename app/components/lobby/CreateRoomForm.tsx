@@ -88,6 +88,7 @@ export default function CreateRoomForm() {
               <option value={GameMode.BOMB_PARTY}>Bombparty</option>
               <option value={GameMode.WORDLE}>Wordle</option>
               <option value={GameMode.WORD_CHAIN}>Word Chain</option>
+              <option value={GameMode.BLACKJACK}>Blackjack</option>
             </select>
             <p className="label justify-center">
               {selectedMode === GameMode.BOMB_PARTY &&
@@ -96,6 +97,8 @@ export default function CreateRoomForm() {
                 "Multiplayer cooperative word guessing"}
               {selectedMode === GameMode.WORD_CHAIN &&
                 "Strategic last-letter word builder"}
+              {selectedMode === GameMode.BLACKJACK &&
+                "Classic casino card game against the dealer"}
             </p>
           </fieldset>
         </div>

@@ -12,6 +12,8 @@ export const getGameModeName = (mode?: GameMode) => {
       return "Wordle"
     case GameMode.WORD_CHAIN:
       return "Word Chain"
+    case GameMode.BLACKJACK:
+      return "Blackjack"
     default:
       return ""
   }

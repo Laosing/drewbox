@@ -6,6 +6,7 @@ import { GAME_CONFIG } from "../../shared/config"
 const BombPartySettings = lazy(() => import("./BombParty/BombPartySettings"))
 const WordleSettings = lazy(() => import("./Wordle/WordleSettings"))
 const WordChainSettings = lazy(() => import("./WordChain/WordChainSettings"))
+const BlackjackSettings = lazy(() => import("./Blackjack/BlackjackSettings"))
 
 interface GameSettingsFormProps {
   gameMode: GameMode
@@ -122,6 +123,33 @@ export function GameSettingsForm({
             pendingSettings.hardModeStartRound ??
             serverState.hardModeStartRound ??
             GAME_CONFIG.WORD_CHAIN.HARD_MODE_START.DEFAULT
+          }
+          chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
+          gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
+          onUpdate={onUpdate}
+        />
+      )}
+      {gameMode === GameMode.BLACKJACK && (
+        <BlackjackSettings
+          deckCount={
+            pendingSettings.deckCount ??
+            serverState.deckCount ??
+            GAME_CONFIG.BLACKJACK.DECKS.DEFAULT
+          }
+          maxTimer={
+            pendingSettings.maxTimer ??
+            serverState.maxTimer ??
+            GAME_CONFIG.BLACKJACK.TIMER.DEFAULT
+          }
+          dealerHitsSoft17={
+            pendingSettings.dealerHitsSoft17 ??
+            serverState.dealerHitsSoft17 ??
+            true
+          }
+          winningScore={
+            pendingSettings.winningScore ??
+            serverState.winningScore ??
+            GAME_CONFIG.BLACKJACK.WINNING_SCORE.DEFAULT
           }
           chatEnabled={pendingSettings.chatEnabled ?? chatEnabled}
           gameLogEnabled={pendingSettings.gameLogEnabled ?? gameLogEnabled}
