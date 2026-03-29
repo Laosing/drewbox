@@ -299,6 +299,67 @@ describe("Word Chain Game Logic", () => {
     })
   })
 
+  it("should pass turn to next alive player after a player is eliminated", async () => {
+    const p1 = await joinPlayer("p1")
+    const p2 = await joinPlayer("p2")
+    const p3 = await joinPlayer("p3")
+
+    const game = new WordChainGame(server)
+    server.roomService.activeGame = game
+
+    // Manually set game to PLAYING state (skip countdown)
+    server.gameState = GameState.PLAYING
+    server.initialAliveCount = 3
+    game.activePlayerId = "p1"
+
+    // Move to p2
+    game.nextTurn()
+    expect(game.activePlayerId).toBe("p2")
+
+    // Eliminate p2
+    const p2Data = server.players.get("p2")!
+    p2Data.lives = 0
+    p2Data.isAlive = false
+
+    // After p2 dies (still activePlayerId), next turn should go to p3, not p1
+    game.nextTurn()
+    expect(game.activePlayerId).toBe("p3")
+  })
+
+  it("should skip dead players and wrap around correctly", async () => {
+    const p1 = await joinPlayer("p1")
+    const p2 = await joinPlayer("p2")
+    const p3 = await joinPlayer("p3")
+    const p4 = await joinPlayer("p4")
+
+    const game = new WordChainGame(server)
+    server.roomService.activeGame = game
+
+    // Manually set game to PLAYING state (skip countdown)
+    server.gameState = GameState.PLAYING
+    server.initialAliveCount = 4
+
+    // Eliminate p3
+    const p3Data = server.players.get("p3")!
+    p3Data.lives = 0
+    p3Data.isAlive = false
+
+    // p2's turn
+    game.activePlayerId = "p2"
+    game.nextTurn()
+
+    // Should skip dead p3 and go to p4
+    expect(game.activePlayerId).toBe("p4")
+
+    // p4's turn - should wrap around to p1 (skipping dead p3)
+    game.nextTurn()
+    expect(game.activePlayerId).toBe("p1")
+
+    // p1's turn - should skip dead p3 and go to p2
+    game.nextTurn()
+    expect(game.activePlayerId).toBe("p2")
+  })
+
   it("should select a valid starting player from participants", async () => {
     await joinPlayer("p1")
     await joinPlayer("p2")

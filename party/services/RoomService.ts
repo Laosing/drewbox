@@ -13,7 +13,7 @@ import { GameRegistry } from "../core/GameRegistry"
 import { ModerationService } from "./ModerationService"
 import { ChatService } from "./ChatService"
 
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000 // check every 30 seconds
 
 export class RoomService {
@@ -345,6 +345,12 @@ export class RoomService {
 
     this.activeGame?.dispose()
     this.gameMode = mode
+
+    // Reset all player scores for the new game
+    for (const p of this.players.values()) {
+      p.wins = 0
+    }
+
     this.logger.info("Changed game mode", { mode })
     this.initializeGame(mode)
     this.context.broadcastState()

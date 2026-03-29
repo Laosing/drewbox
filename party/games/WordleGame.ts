@@ -18,7 +18,7 @@ export class WordleGame extends BaseGame {
 
   activePlayerId: string | null = null
   winnerId: string | null | undefined = null
-  revealedWord: string | undefined = undefined
+  revealedWord: string | null = null
   hintsUsed: number = 0
   hintLetterIndexes: number[] = []
   hintLetters: string[] = []
@@ -47,6 +47,7 @@ export class WordleGame extends BaseGame {
     }
 
     this.pendingReuseWord = reuseWord
+    this.revealedWord = null
     this.context.gameState = GameState.COUNTDOWN
     this.countdown = 5
     this.gameTimer.start()
@@ -57,7 +58,7 @@ export class WordleGame extends BaseGame {
     this.context.gameState = GameState.PLAYING
     this.countdown = null
     this.winnerId = null
-    this.revealedWord = undefined
+    this.revealedWord = null
     this.hintsUsed = 0
     this.hintLetterIndexes = []
     this.hintLetters = []

@@ -288,14 +288,16 @@ export class WordChainGame extends BaseGame {
       this.activePlayerId = alivePlayers[randomIndex].id
     } else if (this.activePlayerId) {
       const aliveIds = alivePlayers.map((p) => p.id)
-      const currentIndex = aliveIds.indexOf(this.activePlayerId)
+      const allIds = Array.from(this.players.keys())
+      const currentIndex = allIds.indexOf(this.activePlayerId)
 
-      let nextIndex = 0
-      if (currentIndex !== -1) {
-        nextIndex = (currentIndex + 1) % aliveIds.length
+      // Walk forward from current player to find the next alive player
+      let nextIndex = (currentIndex + 1) % allIds.length
+      while (!aliveIds.includes(allIds[nextIndex])) {
+        nextIndex = (nextIndex + 1) % allIds.length
       }
 
-      this.activePlayerId = aliveIds[nextIndex]
+      this.activePlayerId = allIds[nextIndex]
     } else {
       this.activePlayerId = alivePlayers[0].id
     }
